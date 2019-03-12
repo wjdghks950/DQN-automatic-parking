@@ -167,32 +167,26 @@ class LearningAgent(Agent):
         if True:
             ch = self.getch()
             if ch == 'w':
-                print 'forward'
+                print 'accel'
                 set_action= car_sim_env.valid_actions[0]
             elif ch == 's':
-                print 'backward'
+                print 'decel'
                 set_action= car_sim_env.valid_actions[1]
-            elif ch == 'd':
-                print 'right_45_backward'
-                set_action= car_sim_env.valid_actions[5]
-            elif ch == 'a':
-                print 'left_45_backward'
-                set_action= car_sim_env.valid_actions[4]
             elif ch == 'q':
-                print 'left_45_forward'
+                print 'left_D'
                 set_action= car_sim_env.valid_actions[2]
             elif ch == 'e':
-                print 'right_45_forward'
+                print 'right_D'
                 set_action= car_sim_env.valid_actions[3]
-            elif ch == 'x':
-                print 'keep'
+            elif ch == 'a':
+                print 'left_R'
+                set_action= car_sim_env.valid_actions[4]
+            elif ch == 'd':
+                print 'right_R'
+                set_action= car_sim_env.valid_actions[5]
+            elif ch == 'f':
+                print 'brake'
                 set_action= car_sim_env.valid_actions[6]
-            elif ch == 'z':
-                print 'left'
-                set_action= car_sim_env.valid_actions[7]
-            elif ch == 'c':
-                print 'right'
-                set_action= car_sim_env.valid_actions[8]
             elif ch == 'r':
                 print 'reset'
                 self.reset()
