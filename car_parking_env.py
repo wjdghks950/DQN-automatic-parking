@@ -19,42 +19,22 @@ from datetime import datetime
 import time
 
 class car_sim_env(object):
+    '''
     valid_actions = ['forward', 'backward', 'left_45_forward',
             'right_45_forward', 'left_45_backward', 'right_45_backward',
             'keep', 'left', 'right'
             ]
-
+    '''
+    valid_actions = ['accel','decel','left_D','right_D','left_R','right_R', 'brake']
     step_length = 0.1
 #    break_pedal = 0.05
 #    acc_pedal = 0.01
-    speed = 0.01
+    acceleration = 0.01
     r_gear = 1 # when r_gear == -1, reverse driving
     angle = 0.785
 
     cur_speed = 0
-    cur_velocity = step_length
-    """
-    valid_actions_dict = {
-            valid_actions[0]: np.array([speed, 1, 0.0]), \
-            valid_actions[1]: np.array([-speed, 1, 0.0]), \
-            valid_actions[2]: np.array([speed, 1, angle]), \
-            valid_actions[3]: np.array([speed, 1, -angle]), \
-            valid_actions[4]: np.array([-speed, 1, angle]), \
-            valid_actions[5]: np.array([-speed, 1, -angle]), \
-            valid_actions[6]: np.array([speed, r_gear, 0.0]), \
-            valid_actions[7]: np.array([-speed, r_gear, 0.0]), \
-            valid_actions[8]: np.array([speed, r_gear, angle]), \
-            valid_actions[9]: np.array([speed, r_gear, -angle]), \
-            valid_actions[10]: np.array([-speed, r_gear, angle]), \
-            valid_actions[11]: np.array([-speed, r_gear, -angle])
-            }  # np.array([speed, angle])
-    valid_actions_dict = {valid_actions[0]: np.array([speed, 0.0]), \
-                          valid_actions[1]: np.array([-speed, 0.0]), \
-                          valid_actions[2]: np.array([speed, angle]), \
-                          valid_actions[3]: np.array([speed, -angle]), \
-                          valid_actions[4]: np.array([-speed, angle]), \
-                          valid_actions[5]: np.array([-speed, -angle])}  # np.array([speed, angle])
-    """
+    '''
     valid_actions_dict = {valid_actions[0]: np.array([speed, 0.0]), \
                           valid_actions[1]: np.array([-speed, 0.0]), \
                           valid_actions[2]: np.array([speed, angle]), \
@@ -65,6 +45,15 @@ class car_sim_env(object):
                           valid_actions[7]: np.array([0, angle]), \
                           valid_actions[8]: np.array([0, -angle])
                           }  # np.array([speed, angle])
+    '''
+    valid_actions_dict = {valid_actions[0]: np.array([acceleration, 0.0]),\
+                          valid_actions[1]: np.array([-acceleration, 0.0]),\
+                          valid_actions[2]: np.array([acceleration, angle]),\
+                          valid_actions[3]: np.array([acceleration, -angle]),\
+                          valid_actions[4]: np.array([-acceleration, angle]),\
+                          valid_actions[5]: np.array([-acceleration, -angle]),\
+                          valid_actions[6]: np.array([0.0, 0.0])
+                          }
     def __init__(self):
         self.done = False
         self.enforce_deadline = False
@@ -374,16 +363,18 @@ class car_sim_env(object):
 
 
     def agent_step(self, cur_pose, action):
-        # cur_pose:np.array([x,y,theta]) -> should be car_state:np.array([x,y,theta_heading,v,theta_steering])
+        #TODO: cur_pose:np.array([x,y,theta]) -> should be car_state:np.array([x,y,theta_heading,v,theta_steering])
 
         new_pose = np.zeros(3)
         theta_heading = cur_pose[2]
-        theta_steering = self.valid_actions_dict[action][1]
-        speed = self.valid_actions_dict[action][0]
+        theta_steering = self.valid_actions_dict[action][1] # angle
+        acceleration = self.valid_actions_dict[action][0] # acceleration
         
-        if (self.cur_speed + speed)*(self.cur_speed) < 0 : ## if pos-neg is changed
+        if (self.cur_speed + acceleration)*(self.cur_speed) < 0 : ## if pos-neg is changed
             self.r_gear = (-self.r_gear) ##
-        self.cur_speed += speed ##
+        
+        #TODO: add acceleration factor
+        self.cur_speed += acceleration ##
         self.cur_velocity = abs(self.cur_speed) ##
         
         speed_sign = self.r_gear ##
@@ -719,7 +710,7 @@ class car_sim_env(object):
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return ch
 
-
+    '''
     def read_key(self):
         while True:
             ch = self.getch()
@@ -755,7 +746,39 @@ class car_sim_env(object):
                 sys.exit()
             else:
                 print ord(ch)
-
+    '''
+    def read_key(self):
+        while True:
+            ch = self.getch()
+            if ch == 'w':
+                print 'accel'
+                set_action = self.valid_actions[0]
+            elif ch == 's':
+                print 'decel'
+                set_action = self.valid_acitons[1]
+            elif ch == 'q':
+                print 'left_D'
+                set_action = self.valid_actions[2]
+            elif ch == 'e':
+                print 'right_D'
+                set_action = self.valid_actions[3]
+            elif ch == 'a':
+                print 'left_R'
+                set_action = self.valid_actions[4]
+            elif ch == 'd':
+                print 'right_R'
+                set_action = self.valid_actions[5]
+            elif ch == 'f':
+                print ' brake'
+                set_action = self.valid_actions[6]
+            elif ch == 'r':
+                print 'reset'
+                self.reset()
+            elif ch == '\x03':
+                sys.exit()
+            else:
+                print ord(ch)
+        return set_action
 
 class Agent(object):
     """Base class for all agents."""
