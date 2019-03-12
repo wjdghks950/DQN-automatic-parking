@@ -575,7 +575,7 @@ class car_sim_env(object):
             x = random.uniform(self.agent_start_region[0], self.agent_start_region[1])
             y = random.uniform(self.agent_start_region[2], self.agent_start_region[3])
             # theta = np.pi
-            theta = random.uniform(0, 2 * np.pi)
+            theta = random.uniform(0, 2 * np.pi) #Generate random car_head angle
             if x < self.car1_verts[1,0] and x > self.car2_verts[0,0] \
                 and y < self.car1_verts[0,1] and y > self.car1_verts[-1,1]:
                 continue
