@@ -31,9 +31,9 @@ class car_sim_env(object):
 #    acc_pedal = 0.01
     acceleration = 0.01
     r_gear = 1 # when r_gear == -1, reverse driving
-    angle = 0.785
+    delta_angle = 0.785
 
-    cur_speed = 0
+ #   cur_speed = 0
     '''
     valid_actions_dict = {valid_actions[0]: np.array([speed, 0.0]), \
                           valid_actions[1]: np.array([-speed, 0.0]), \
@@ -48,10 +48,10 @@ class car_sim_env(object):
     '''
     valid_actions_dict = {valid_actions[0]: np.array([acceleration, 0.0]),\
                           valid_actions[1]: np.array([-acceleration, 0.0]),\
-                          valid_actions[2]: np.array([acceleration, angle]),\
-                          valid_actions[3]: np.array([acceleration, -angle]),\
-                          valid_actions[4]: np.array([-acceleration, angle]),\
-                          valid_actions[5]: np.array([-acceleration, -angle]),\
+                          valid_actions[2]: np.array([acceleration, delta_angle]),\
+                          valid_actions[3]: np.array([acceleration, -delta_angle]),\
+                          valid_actions[4]: np.array([-acceleration, delta_angle]),\
+                          valid_actions[5]: np.array([-acceleration, -delta_angle]),\
                           valid_actions[6]: np.array([0.0, 0.0])
                           }
     def __init__(self):
@@ -118,7 +118,7 @@ class car_sim_env(object):
         self.t = 0
 
 
-        self.init_agent()
+        self.init_agent() # Initialize agent parameters
         self.ax.add_patch(self.agent_patch)
         self.ax.add_patch(self.agent_head_patch)
         self.ax.add_patch(self.agent_center_patch)
@@ -363,20 +363,16 @@ class car_sim_env(object):
 
 
     def agent_step(self, cur_pose, action):
-        #TODO: cur_pose:np.array([x,y,theta]) -> should be car_state:np.array([x,y,theta_heading,v,theta_steering])
-
-        new_pose = np.zeros(3)
+        #TODO: cur_pose:np.array([x,y,theta]) -> should be car_state:np.array([x,y,theta_heading,cur_speed,theta_steering])
+        new_pose = np.zeros(5)
         theta_heading = cur_pose[2]
-        theta_steering = self.valid_actions_dict[action][1] # angle
-        acceleration = self.valid_actions_dict[action][0] # acceleration
+        acceleration = valid_actions_dict[action][0]
+        delta_theta_steering = valid_actions_dict[action][1]
+        theta_steering = cur_pose[4] # steering angle
+        self.cur_velocity = abs(cur_pose[3]) ##
         
-        if (self.cur_speed + acceleration)*(self.cur_speed) < 0 : ## if pos-neg is changed
+        if (cur_pose[3] + acceleration)*(cur_pose[3]) < 0 : ## if pos-neg is changed
             self.r_gear = (-self.r_gear) ##
-        
-        #TODO: add acceleration factor
-        self.cur_speed += acceleration ##
-        self.cur_velocity = abs(self.cur_speed) ##
-        
         speed_sign = self.r_gear ##
 
         angle_sign = 0
@@ -384,7 +380,6 @@ class car_sim_env(object):
             angle_sign  = 1
         elif theta_steering < 0:  # turn right
             angle_sign = -1
-
 
         delta_x = self.cur_velocity * np.cos(theta_heading)
         delta_y = self.cur_velocity * np.sin(theta_heading)
@@ -395,6 +390,9 @@ class car_sim_env(object):
         new_pose[1] = cur_pose[1] + delta_y * speed_sign
         new_pose[2] = cur_pose[2] + (v/b) * np.tan(theta_steering)
         new_pose[2] = new_pose[2] % (2 * np.pi)
+        #TODO: add acceleration factor
+        new_pose[3] = cur_pose[3] + acceleration
+        new_pose[4] = (cur_pose[4] + delta_theta_steering) % (2*np.pi)
         #new_pose[:2] += np.random.normal(0, self.position_noise / 4.0, 2)
         #new_pose[2] += np.random.normal(0, self.angle_noise / 4.0)
 
@@ -447,9 +445,12 @@ class car_sim_env(object):
         self.update_agent_pose(new_pose)
 
     def update_agent_pose(self, pose):
+        # Update agent pose
         self.agent_pose = pose.copy()
         self.agent_center = self.agent_pose[:2]
         self.agent_dir = self.agent_pose[2]
+        self.agent_speed = self.agent_pose[3]
+        self.agent_steering_angle = self.agent_pose[4]
         self.agent_verts = self.get_rect_verts(self.agent_center, self.car_length, self.car_width, self.agent_dir)
 
     def get_steps(self):
@@ -575,7 +576,11 @@ class car_sim_env(object):
                 continue
             else:
                 break
-        return np.array([x,y,theta])
+        cur_speed = 0.0 # current speed
+        theta_steering = 0.0 # current steering angle
+        
+        # return np.array([x, y, theta])
+        return np.array([x,y,theta, cur_speed, theta_steering])
 
 
 
@@ -714,42 +719,6 @@ class car_sim_env(object):
     def read_key(self):
         while True:
             ch = self.getch()
-            if ch == '\x1b':
-                ch = self.getch()
-                if ch == '[':
-                    ch = self.getch()
-                    if ch == 'A':
-                        print 'forward'
-                        self.set_action('forward')
-                    elif ch == 'B':
-                        print 'backward'
-                        self.set_action('backward')
-                    elif ch == 'C':
-                        print 'right_45_backward'
-                        self.set_action('right_45_backward')
-                    elif ch == 'D':
-                        print 'left_45_backward'
-                        self.set_action('left_45_backward')
-            elif ch == ' ':
-                print 'stop'
-                self.set_action('stop')
-            elif ch == 'a':
-                print 'left_45_forward'
-                self.set_action('left_45_forward')
-            elif ch == 'd':
-                print 'right_45_forward'
-                self.set_action('right_45_forward')
-            elif ch == 'r':
-                print 'reset'
-                self.reset()
-            elif ch == '\x03' or ch == '\x71':  # ctrl + c or 'q'
-                sys.exit()
-            else:
-                print ord(ch)
-    '''
-    def read_key(self):
-        while True:
-            ch = self.getch()
             if ch == 'w':
                 print 'accel'
                 set_action = self.valid_actions[0]
@@ -779,7 +748,7 @@ class car_sim_env(object):
             else:
                 print ord(ch)
         return set_action
-
+    '''
 class Agent(object):
     """Base class for all agents."""
 
