@@ -189,7 +189,10 @@ class LearningAgent(Agent):
                 set_action= car_sim_env.valid_actions[6]
             elif ch == 'r':
                 print 'reset'
-                self.reset()
+                #self.reset()
+                #TODO: set_action is not assigned
+                # Return the car to its starting point
+                set_action = 'reset'
             elif ch == '\x03' or ch == '\x71':  # ctrl + c or 'q'
                 sys.exit()
             else:
@@ -198,7 +201,11 @@ class LearningAgent(Agent):
 
     def get_action(self, state):
         action_selected = self.read_key()
-        q_value_selected = self.get_q_value(state, action_selected)
+        if action_selected is not 'reset':
+            q_value_selected = self.get_q_value(state, action_selected)
+        else:
+            # if car position is reset
+            q_value_selected = 0 
         '''
         if random.random() < self.epsilon:
     		action_selected = random.choice(car_sim_env.valid_actions)
