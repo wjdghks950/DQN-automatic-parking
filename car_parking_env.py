@@ -31,7 +31,7 @@ class car_sim_env(object):
 #    acc_pedal = 0.01
     acceleration = 0.01
     r_gear = 1 # when r_gear == -1, reverse driving
-    delta_angle = 0.785
+    delta_angle = 0.01745 # in radian
 
  #   cur_speed = 0
     '''
@@ -104,6 +104,7 @@ class car_sim_env(object):
         self.position_noise = 0.008
         self.angle_noise = 0.008
         self.angle_blockwidth = np.pi / 8
+        self.max_steer_angle = np.pi / 4
 
         self.has_finished_stage_two = False
         self.region_idx = 1  # 0:close to terminal, 1:near terminal, stage two , 2:far away from terminal, stage one
@@ -363,36 +364,40 @@ class car_sim_env(object):
 
 
     def agent_step(self, cur_pose, action):
-        #TODO: cur_pose:np.array([x,y,theta]) -> should be car_state:np.array([x,y,theta_heading,cur_speed,theta_steering])
+        # cur_pose:np.array([x,y,theta]) -> car_state:np.array([x,y,theta_heading,cur_speed,theta_steering])
         new_pose = np.zeros(5)
         theta_heading = cur_pose[2]
-        acceleration = valid_actions_dict[action][0]
-        delta_theta_steering = valid_actions_dict[action][1]
+        acceleration = self.valid_actions_dict[action][0]
+        delta_theta_steering = self.valid_actions_dict[action][1] # amount of steering wheel turn
         theta_steering = cur_pose[4] # steering angle
-        self.cur_velocity = abs(cur_pose[3]) ##
-        
+        self.cur_velocity = abs(cur_pose[3]) # current velocity
+        '''
         if (cur_pose[3] + acceleration)*(cur_pose[3]) < 0 : ## if pos-neg is changed
             self.r_gear = (-self.r_gear) ##
+        '''
+        if acceleration >= 0:
+            self.r_gear = 1
+        else:
+            self.r_gear = -1
         speed_sign = self.r_gear ##
-
-        angle_sign = 0
-        if theta_steering > 0:  # turn left
-            angle_sign  = 1
-        elif theta_steering < 0:  # turn right
-            angle_sign = -1
 
         delta_x = self.cur_velocity * np.cos(theta_heading)
         delta_y = self.cur_velocity * np.sin(theta_heading)
         v = self.cur_velocity
-        b = self.forward_radius * 2
+        b = self.forward_radius * 2 # wheelbase
 
         new_pose[0] = cur_pose[0] + delta_x * speed_sign
         new_pose[1] = cur_pose[1] + delta_y * speed_sign
-        new_pose[2] = cur_pose[2] + (v/b) * np.tan(theta_steering)
+
+        new_theta_steering = theta_steering + delta_theta_steering
+        if new_theta_steering >= self.max_steer_angle:
+            # At max_steer_angle, the wheel should stay at the max_steer angle
+            new_theta_steering = self.max_steer_angle
+
+        new_pose[4] = new_theta_steering
+        new_pose[2] = cur_pose[2] + (v/b) * np.tan(new_pose[4])
         new_pose[2] = new_pose[2] % (2 * np.pi)
-        #TODO: add acceleration factor
         new_pose[3] = cur_pose[3] + acceleration
-        new_pose[4] = (cur_pose[4] + delta_theta_steering) % (2*np.pi)
         #new_pose[:2] += np.random.normal(0, self.position_noise / 4.0, 2)
         #new_pose[2] += np.random.normal(0, self.angle_noise / 4.0)
 
@@ -407,10 +412,7 @@ class car_sim_env(object):
                 car_radius = self.backward_radius
                 turning_angle = self.backward_turning_angle * (self.cur_velocity/self.step_length) ##
 
-
-
             rear_radius = math.sqrt(car_radius ** 2 - self.rear_wheel_center_to_car_center ** 2)
-
 
             new_pose[2] = cur_pose[2]  + angle_sign * speed_sign * turning_angle
             new_pose[2] = (new_pose[2] + 2 * np.pi) % (2 * np.pi)
@@ -544,14 +546,8 @@ class car_sim_env(object):
         return wall_collision or out_of_wall
 
 
-
-
-
     def get_deadline(self):
         return self.deadline
-
-
-
 
 
     def set_agent_start_region(self):
@@ -715,40 +711,6 @@ class car_sim_env(object):
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return ch
 
-    '''
-    def read_key(self):
-        while True:
-            ch = self.getch()
-            if ch == 'w':
-                print 'accel'
-                set_action = self.valid_actions[0]
-            elif ch == 's':
-                print 'decel'
-                set_action = self.valid_acitons[1]
-            elif ch == 'q':
-                print 'left_D'
-                set_action = self.valid_actions[2]
-            elif ch == 'e':
-                print 'right_D'
-                set_action = self.valid_actions[3]
-            elif ch == 'a':
-                print 'left_R'
-                set_action = self.valid_actions[4]
-            elif ch == 'd':
-                print 'right_R'
-                set_action = self.valid_actions[5]
-            elif ch == 'f':
-                print ' brake'
-                set_action = self.valid_actions[6]
-            elif ch == 'r':
-                print 'reset'
-                self.reset()
-            elif ch == '\x03':
-                sys.exit()
-            else:
-                print ord(ch)
-        return set_action
-    '''
 class Agent(object):
     """Base class for all agents."""
 
