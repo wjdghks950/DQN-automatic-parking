@@ -31,7 +31,7 @@ class car_sim_env(object):
 #    acc_pedal = 0.01
     acceleration = 0.01
     r_gear = 1 # when r_gear == -1, reverse driving
-    delta_angle = 0.01745 # in radian
+    delta_angle = 0.03491 # in radian
 
  #   cur_speed = 0
     '''
@@ -50,8 +50,8 @@ class car_sim_env(object):
                           valid_actions[1]: np.array([-acceleration, 0.0]),\
                           valid_actions[2]: np.array([acceleration, delta_angle]),\
                           valid_actions[3]: np.array([acceleration, -delta_angle]),\
-                          valid_actions[4]: np.array([-acceleration, delta_angle]),\
-                          valid_actions[5]: np.array([-acceleration, -delta_angle]),\
+                          valid_actions[4]: np.array([-acceleration, -delta_angle]),\
+                          valid_actions[5]: np.array([-acceleration, delta_angle]),\
                           valid_actions[6]: np.array([0.0, 0.0])
                           }
     def __init__(self):
@@ -389,6 +389,15 @@ class car_sim_env(object):
         new_pose[0] = cur_pose[0] + delta_x * speed_sign
         new_pose[1] = cur_pose[1] + delta_y * speed_sign
 
+        change_dir = False # Checks if the handle was turned to the other side (i.e. left to right)
+         
+        
+
+        if delta_theta_steering == 0.0 or change_dir:
+            # Reset wheel angle to 0 if handle is straight
+            print(action)
+            theta_steering = 0        
+
         new_theta_steering = theta_steering + delta_theta_steering
         if new_theta_steering >= self.max_steer_angle:
             # At max_steer_angle, the wheel should stay at the max_steer angle
@@ -560,10 +569,15 @@ class car_sim_env(object):
     def generate_agent_pose(self):
         random.seed(datetime.now())
         while True:
+            '''
             x = random.uniform(self.agent_start_region[0], self.agent_start_region[1])
             y = random.uniform(self.agent_start_region[2], self.agent_start_region[3])
-            # theta = np.pi
-            theta = random.uniform(0, 2 * np.pi) #Generate random car_head angle
+            '''
+            x = 2.0
+            y = 2.0
+            print('start_x:', x, 'start_y:', y)
+            theta = (-np.pi/2)
+            #theta = random.uniform(0, 2 * np.pi) #Generate random car_head angle
             if x < self.car1_verts[1,0] and x > self.car2_verts[0,0] \
                 and y < self.car1_verts[0,1] and y > self.car1_verts[-1,1]:
                 continue
@@ -691,7 +705,6 @@ class car_sim_env(object):
         self.to_terminal_idx = 0
         self.region_idx = 1
         self.has_finished_stage_two = False
-
 
     def cal_deadline(self, x, y):
         dist = abs(x - self.terminal_xy[0]) / self.step_length + abs(y - self.terminal_xy[1]) / self.step_length
