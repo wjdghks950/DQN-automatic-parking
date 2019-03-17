@@ -391,11 +391,17 @@ class car_sim_env(object):
 
         change_dir = False # Checks if the handle was turned to the other side (i.e. left to right)
          
-        
+        if theta_steering > 0: # Wheel turned left
+            if (theta_steering + delta_theta_steering) < theta_steering:
+                change_dir = True
+        elif theta_steering < 0: # Wheel turned right
+            if (theta_steering + delta_theta_steering) > theta_steering:
+                change_dir = True
+        else: # theta_steering == 0
+            pass
 
         if delta_theta_steering == 0.0 or change_dir:
             # Reset wheel angle to 0 if handle is straight
-            print(action)
             theta_steering = 0        
 
         new_theta_steering = theta_steering + delta_theta_steering
