@@ -72,9 +72,10 @@ class car_sim_env(object):
         self.backward_radius = 0.42
         self.forward_turning_angle = 0.202
         self.backward_turning_angle = 0.262
+        
+        self.wall_edge_length = 4.0
         self.wall_center = np.array([0.469, 0])
 
-        self.wall_edge_length = 8.0
         self.wall_verts = self.get_rect_verts(self.wall_center, self.wall_edge_length, self.wall_edge_length, angle=0.0)
         # self.wall_verts = self.get_rect_verts(self.wall_center, 3.6, 2.4, angle=0.0)
         self.wall_verts_closed = self.close_rect(self.wall_verts)
@@ -578,8 +579,8 @@ class car_sim_env(object):
             x = random.uniform(self.agent_start_region[0], self.agent_start_region[1])
             y = random.uniform(self.agent_start_region[2], self.agent_start_region[3])
             '''
-            x = 2.0
-            y = 2.0
+            x = 1.2
+            y = 1.0
             print('start_x:', x, 'start_y:', y)
             theta = (-np.pi/2)
             #theta = random.uniform(0, 2 * np.pi) #Generate random car_head angle
