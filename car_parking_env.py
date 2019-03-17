@@ -389,8 +389,7 @@ class car_sim_env(object):
         new_pose[0] = cur_pose[0] + delta_x * speed_sign
         new_pose[1] = cur_pose[1] + delta_y * speed_sign
 
-        change_dir = False # Checks if the handle was turned to the other side (i.e. left to right)
-         
+        change_dir = False # Checks if the handle was turned to the other side (i.e. left to right)         
         if theta_steering > 0: # Wheel turned left
             if (theta_steering + delta_theta_steering) < theta_steering:
                 change_dir = True
