@@ -64,8 +64,8 @@ class car_sim_env(object):
                            Path.LINETO,
                            Path.CLOSEPOLY]
         # self.wall_verts = np.array([[-3.53, 4.0], [4.469, 4], [4.469, -4], [-3.53, -4], [-3.53, 4.0]])
-        self.car_length = 0.55
-        self.car_width = 0.3889
+        self.car_length = 1.2
+        self.car_width = 0.75
         self.car_diagonal_length = math.sqrt(self.car_width ** 2 + self.car_length ** 2)
         self.rear_wheel_center_to_car_center = 0.2
         self.forward_radius = 0.59  # the radius of circle that the car's center goes through
@@ -73,7 +73,7 @@ class car_sim_env(object):
         self.forward_turning_angle = 0.202
         self.backward_turning_angle = 0.262
         
-        self.wall_edge_length = 4.0
+        self.wall_edge_length = 5.0
         self.wall_center = np.array([0.469, 0])
 
         self.wall_verts = self.get_rect_verts(self.wall_center, self.wall_edge_length, self.wall_edge_length, angle=0.0)
@@ -81,12 +81,12 @@ class car_sim_env(object):
         self.wall_verts_closed = self.close_rect(self.wall_verts)
 
 
-        self.car1_center = np.array([0.0, -2.5])
-        self.car1_verts = self.get_rect_verts(self.car1_center, self.car_length, self.car_width, angle=0.0)
+        self.car1_center = np.array([2.0, 1.0])
+        self.car1_verts = self.get_rect_verts(self.car1_center, self.car_length, self.car_width, angle=1.56)
         self.car1_verts_closed = self.close_rect(self.car1_verts)
 
-        self.car2_center = np.array([-0.0, -1.5])
-        self.car2_verts = self.get_rect_verts(self.car2_center, self.car_length, self.car_width, angle=0.0)
+        self.car2_center = np.array([0.2, 1.0])
+        self.car2_verts = self.get_rect_verts(self.car2_center, self.car_length, self.car_width, angle=1.56)
         self.car2_verts_closed = self.close_rect(self.car2_verts)
 
         self.wall_path = Path(self.wall_verts_closed, self.rect_codes)
@@ -579,10 +579,10 @@ class car_sim_env(object):
             x = random.uniform(self.agent_start_region[0], self.agent_start_region[1])
             y = random.uniform(self.agent_start_region[2], self.agent_start_region[3])
             '''
-            x = 1.2
-            y = 1.0
+            x = -1.2
+            y = -0.0
             print('start_x:', x, 'start_y:', y)
-            theta = (-np.pi/2)
+            theta = 0
             #theta = random.uniform(0, 2 * np.pi) #Generate random car_head angle
             if x < self.car1_verts[1,0] and x > self.car2_verts[0,0] \
                 and y < self.car1_verts[0,1] and y > self.car1_verts[-1,1]:
