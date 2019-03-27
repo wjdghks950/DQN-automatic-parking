@@ -33,7 +33,6 @@ class car_sim_env(object):
     r_gear = 1 # when r_gear == -1, reverse driving
     delta_angle = 0.03491 # in radian
 
- #   cur_speed = 0
     '''
     valid_actions_dict = {valid_actions[0]: np.array([speed, 0.0]), \
                           valid_actions[1]: np.array([-speed, 0.0]), \
@@ -389,7 +388,8 @@ class car_sim_env(object):
 
         new_pose[0] = cur_pose[0] + delta_x * speed_sign
         new_pose[1] = cur_pose[1] + delta_y * speed_sign
-
+        
+        '''
         change_dir = False # Checks if the handle was turned to the other side (i.e. left to right)         
         if theta_steering > 0: # Wheel turned left
             if (theta_steering + delta_theta_steering) < theta_steering:
@@ -399,11 +399,11 @@ class car_sim_env(object):
                 change_dir = True
         else: # theta_steering == 0
             pass
-
+        
         if delta_theta_steering == 0.0 or change_dir:
             # Reset wheel angle to 0 if handle is straight
             theta_steering = 0        
-
+        '''
         new_theta_steering = theta_steering + delta_theta_steering
         if new_theta_steering >= self.max_steer_angle:
             # At max_steer_angle, the wheel should stay at the max_steer angle
