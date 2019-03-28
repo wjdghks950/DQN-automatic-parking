@@ -186,9 +186,21 @@ class LearningAgent(Agent):
                 set_action= car_sim_env.valid_actions[5]
             elif ch == 'f':
                 print 'brake'
-                set_action= car_sim_env.valid_actions[6]
+                set_action= car_sim_env.valid_actions[10]
             elif ch == 'r':
                 print 'reset'
+            elif ch == 'z':
+                print 'left_D+'
+                set_action= car_sim_env.valid_actions[6]
+            elif ch == 'x':
+                print 'right_D+'
+                set_action= car_sim_env.valid_actions[7]
+            elif ch == 'c':
+                print 'left_R+'
+                set_action= car_sim_env.valid_actions[8]
+            elif ch == 'v':
+                print 'right_R+'
+                set_action= car_sim_env.valid_actions[9]
                 #self.reset()
                 #TODO: set_action is not assigned
                 # Return the car to its starting point
