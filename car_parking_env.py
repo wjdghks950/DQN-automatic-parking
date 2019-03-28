@@ -25,7 +25,7 @@ class car_sim_env(object):
             'keep', 'left', 'right'
             ]
     '''
-    valid_actions = ['accel','decel','left_D','right_D','left_R','right_R', 'brake']
+    valid_actions = ['accel','decel','left_D','right_D','left_R','right_R', 'left_D+', 'right_D+', 'left_R+', 'right_R+', 'brake']
     step_length = 0.1
 #    break_pedal = 0.05
 #    acc_pedal = 0.01
@@ -51,7 +51,11 @@ class car_sim_env(object):
                           valid_actions[3]: np.array([acceleration, -delta_angle]),\
                           valid_actions[4]: np.array([-acceleration, -delta_angle]),\
                           valid_actions[5]: np.array([-acceleration, delta_angle]),\
-                          valid_actions[6]: np.array([0.0, 0.0])
+                          valid_actions[6]: np.array([acceleration, 3*delta_angle]),\
+                          valid_actions[7]: np.array([acceleration, 3*(-delta_angle)]),\
+                          valid_actions[8]: np.array([-acceleration, 3*(-delta_angle)]),\
+                          valid_actions[9]: np.array([-acceleration, 3*delta_angle]),\
+                          valid_actions[10]: np.array([0.0, 0.0])
                           }
     def __init__(self):
         self.done = False
@@ -409,6 +413,7 @@ class car_sim_env(object):
             # At max_steer_angle, the wheel should stay at the max_steer angle
             new_theta_steering = self.max_steer_angle
 
+        print('Wheel angle:', new_theta_steering)
         new_pose[4] = new_theta_steering
         new_pose[2] = cur_pose[2] + (v/b) * np.tan(new_pose[4])
         new_pose[2] = new_pose[2] % (2 * np.pi)
