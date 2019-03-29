@@ -189,6 +189,7 @@ class LearningAgent(Agent):
                 set_action= car_sim_env.valid_actions[10]
             elif ch == 'r':
                 print 'reset'
+                set_action= 'reset'
             elif ch == 'z':
                 print 'left_D+'
                 set_action= car_sim_env.valid_actions[6]
@@ -204,7 +205,6 @@ class LearningAgent(Agent):
                 #self.reset()
                 #TODO: set_action is not assigned
                 # Return the car to its starting point
-                set_action = 'reset'
             elif ch == '\x03' or ch == '\x71':  # ctrl + c or 'q'
                 sys.exit()
             else:
