@@ -19,43 +19,24 @@ from datetime import datetime
 import time
 
 class car_sim_env(object):
-    '''
-    valid_actions = ['forward', 'backward', 'left_45_forward',
-            'right_45_forward', 'left_45_backward', 'right_45_backward',
-            'keep', 'left', 'right'
-            ]
-    '''
-    valid_actions = ['accel','decel','left_D','right_D','left_R','right_R', 'left_D+', 'right_D+', 'left_R+', 'right_R+', 'brake']
+    valid_actions = ['accel','decel','left_D','right_D','left_R','right_R', 'keep', 'handle_left', 'handle_right', 'brake', 'brake_handle_left', 'brake_handle_right']
     step_length = 0.1
-#    break_pedal = 0.05
-#    acc_pedal = 0.01
     acceleration = 0.01
     r_gear = 1 # when r_gear == -1, reverse driving
     delta_angle = 0.03491 # in radian
 
-    '''
-    valid_actions_dict = {valid_actions[0]: np.array([speed, 0.0]), \
-                          valid_actions[1]: np.array([-speed, 0.0]), \
-                          valid_actions[2]: np.array([speed, angle]), \
-                          valid_actions[3]: np.array([speed, -angle]), \
-                          valid_actions[4]: np.array([-speed, angle]), \
-                          valid_actions[5]: np.array([-speed, -angle]), \
-                          valid_actions[6]: np.array([0, 0]), \
-                          valid_actions[7]: np.array([0, angle]), \
-                          valid_actions[8]: np.array([0, -angle])
-                          }  # np.array([speed, angle])
-    '''
     valid_actions_dict = {valid_actions[0]: np.array([acceleration, 0.0]),\
                           valid_actions[1]: np.array([-acceleration, 0.0]),\
                           valid_actions[2]: np.array([acceleration, delta_angle]),\
                           valid_actions[3]: np.array([acceleration, -delta_angle]),\
                           valid_actions[4]: np.array([-acceleration, -delta_angle]),\
                           valid_actions[5]: np.array([-acceleration, delta_angle]),\
-                          valid_actions[6]: np.array([acceleration, 3*delta_angle]),\
-                          valid_actions[7]: np.array([acceleration, 3*(-delta_angle)]),\
-                          valid_actions[8]: np.array([-acceleration, 3*(-delta_angle)]),\
-                          valid_actions[9]: np.array([-acceleration, 3*delta_angle]),\
-                          valid_actions[10]: np.array([0.0, 0.0])
+                          valid_actions[6]: np.array([0.0, 0.0]),\
+                          valid_actions[7]: np.array([0.0, delta_angle]),\
+                          valid_actions[8]: np.array([0.0, -delta_angle]),\
+                          valid_actions[9]: np.array([0.0, 0.0]),\
+                          valid_actions[10]: np.array([0.0, delta_angle]),\
+                          valid_actions[11]: np.array([0.0, -delta_angle])
                           }
     def __init__(self):
         self.done = False
