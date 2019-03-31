@@ -102,7 +102,7 @@ class car_sim_env(object):
 
         self.done = False
         self.t = 0
-
+        self.prev_gear = 0
 
         self.init_agent() # Initialize agent parameters
         self.ax.add_patch(self.agent_patch)
@@ -350,20 +350,25 @@ class car_sim_env(object):
 
     def agent_step(self, cur_pose, action):
         # cur_pose:np.array([x,y,theta]) -> car_state:np.array([x,y,theta_heading,cur_speed,theta_steering])
+
         new_pose = np.zeros(5)
         theta_heading = cur_pose[2]
         acceleration = self.valid_actions_dict[action][0]
         delta_theta_steering = self.valid_actions_dict[action][1] # amount of steering wheel turn
         theta_steering = cur_pose[4] # steering angle
         self.cur_velocity = abs(cur_pose[3]) # current velocity
-        '''
-        if (cur_pose[3] + acceleration)*(cur_pose[3]) < 0 : ## if pos-neg is changed
-            self.r_gear = (-self.r_gear) ##
-        '''
+
         if acceleration >= 0:
             self.r_gear = 1
+            if self.prev_gear != 1:
+                cur_pose[3] = 0.0 # Set velocity to 0.0
+                self.prev_gear = 1
         else:
             self.r_gear = -1
+            if self.prev_gear != -1:
+                cur_pose[3] = 0.0
+                self.prev_gear = -1
+
         speed_sign = self.r_gear ##
 
         delta_x = self.cur_velocity * np.cos(theta_heading)
@@ -373,22 +378,7 @@ class car_sim_env(object):
 
         new_pose[0] = cur_pose[0] + delta_x * speed_sign
         new_pose[1] = cur_pose[1] + delta_y * speed_sign
-        
-        '''
-        change_dir = False # Checks if the handle was turned to the other side (i.e. left to right)         
-        if theta_steering > 0: # Wheel turned left
-            if (theta_steering + delta_theta_steering) < theta_steering:
-                change_dir = True
-        elif theta_steering < 0: # Wheel turned right
-            if (theta_steering + delta_theta_steering) > theta_steering:
-                change_dir = True
-        else: # theta_steering == 0
-            pass
-        
-        if delta_theta_steering == 0.0 or change_dir:
-            # Reset wheel angle to 0 if handle is straight
-            theta_steering = 0        
-        '''
+
         new_theta_steering = theta_steering + delta_theta_steering
         if new_theta_steering >= self.max_steer_angle:
             # At max_steer_angle, the wheel should stay at the max_steer angle
@@ -399,6 +389,9 @@ class car_sim_env(object):
         new_pose[2] = cur_pose[2] + (v/b) * np.tan(new_pose[4])
         new_pose[2] = new_pose[2] % (2 * np.pi)
         new_pose[3] = cur_pose[3] + acceleration
+
+        # If we change direction (e.g. drive to reverse), v = 0
+
         #new_pose[:2] += np.random.normal(0, self.position_noise / 4.0, 2)
         #new_pose[2] += np.random.normal(0, self.angle_noise / 4.0)
 
