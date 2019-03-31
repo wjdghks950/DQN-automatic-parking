@@ -258,17 +258,17 @@ class car_sim_env(object):
             print 'agent hit wall'
             self.hit_wall_times += 1
             self.done = True
-            reward = -20.0
+            reward = -100.0
 
         elif self.collide_fixed_cars():
             print '========================================================================================'
             print 'agent hit cars'
             self.hit_car_times += 1
             self.done = True
-            reward = -5.0
+            reward = -100.0
 
         elif self.reach_terminal(agent_pose):
-            reward = 40.0
+            reward = 100.0
             self.done = True
             self.succ_times += 1
             print '-----------------------------------------------------------------------------------------'
@@ -278,7 +278,7 @@ class car_sim_env(object):
             print "Environment.act(): Agent has reached destination!"
 
         elif (agent.state, action) in self.reward_db:
-            reward = 3.0
+            reward = 1.0
 
 
 
