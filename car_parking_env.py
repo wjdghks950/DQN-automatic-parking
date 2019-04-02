@@ -103,7 +103,6 @@ class car_sim_env(object):
 
         self.done = False
         self.t = 0
-        self.prev_gear = 0
 
         self.init_agent() # Initialize agent parameters
         self.ax.add_patch(self.agent_patch)
@@ -367,14 +366,8 @@ class car_sim_env(object):
 
         if acceleration >= 0:
             self.r_gear = 1
-            if self.prev_gear != 1:
-                cur_pose[3] = 0.0 # Set velocity to 0.0
-                self.prev_gear = 1
         else:
             self.r_gear = -1
-            if self.prev_gear != -1:
-                cur_pose[3] = 0.0
-                self.prev_gear = -1
 
         speed_sign = self.r_gear ##
 
