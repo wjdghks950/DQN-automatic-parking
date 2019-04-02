@@ -17,6 +17,7 @@ from matplotlib.ticker import MultipleLocator
 import tools
 from datetime import datetime
 import time
+import re
 
 class car_sim_env(object):
     valid_actions = ['accel','decel','left_D','right_D','left_R','right_R', 'keep', 'handle_left', 'handle_right', 'brake', 'brake_handle_left', 'brake_handle_right']
@@ -125,8 +126,8 @@ class car_sim_env(object):
         self.terminal_boundary = np.zeros(4)
         self.terminal_xy = np.zeros(2)
 
-        self.terminal_xy[0] = 0.0
-        self.terminal_xy[1] = -2.0
+        self.terminal_xy[0] = 1.1
+        self.terminal_xy[1] = 1.0
 
         self.terminal_boundary[0] = self.terminal_xy[0] - 1 * x_offset
         self.terminal_boundary[1] = self.terminal_xy[0] + 1 * x_offset
@@ -164,8 +165,8 @@ class car_sim_env(object):
         self.stage_one_terminal_boundary = np.zeros(4)
         self.stage_one_terminal_xy = np.zeros(2)
 
-        self.stage_one_terminal_xy[0] = 0.0
-        self.stage_one_terminal_xy[1] = -2.0
+        self.stage_one_terminal_xy[0] = 1.1
+        self.stage_one_terminal_xy[1] = 1.0
 
         self.stage_one_terminal_boundary[0] = -1.75
         self.stage_one_terminal_boundary[1] = 1.75
@@ -199,11 +200,14 @@ class car_sim_env(object):
                 print "Environment.step(): Primary agent ran out of time! Trial aborted."
                 self.done = True
                 self.num_out_of_time += 1
+# -----------------------------------
+
 
             self.t += 1
 
     def sense(self):
         agent_pose = self.agent_pose.copy()  # [x, y, theta]
+        print(agent_pose)
         if self.reach_stage_one_terminal(agent_pose) or self.has_finished_stage_two:
             grid_width = 0.1
             agent_pose[0] = np.floor((np.floor(agent_pose[0] / (grid_width / 2)) + 1) / 2) * grid_width
@@ -350,6 +354,9 @@ class car_sim_env(object):
 
     def agent_step(self, cur_pose, action):
         # cur_pose:np.array([x,y,theta]) -> car_state:np.array([x,y,theta_heading,cur_speed,theta_steering])
+        brake_actions = re.compile("^brake.*$")
+        if brake_actions.match(action):
+            cur_pose[3] = 0.0
 
         new_pose = np.zeros(5)
         theta_heading = cur_pose[2]
