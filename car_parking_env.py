@@ -58,20 +58,20 @@ class car_sim_env(object):
         self.forward_turning_angle = 0.202
         self.backward_turning_angle = 0.262
         
-        self.wall_edge_length = 5.0
+        self.wall_edge_length = 3.0
         self.wall_center = np.array([0.469, 0])
 
-        self.wall_verts = self.get_rect_verts(self.wall_center, self.wall_edge_length, self.wall_edge_length, angle=0.0)
+        self.wall_verts = self.get_rect_verts(self.wall_center, self.wall_edge_length*1.5, self.wall_edge_length, angle=0.0)
         # self.wall_verts = self.get_rect_verts(self.wall_center, 3.6, 2.4, angle=0.0)
         self.wall_verts_closed = self.close_rect(self.wall_verts)
 
 
-        self.car1_center = np.array([2.0, 1.0])
-        self.car1_verts = self.get_rect_verts(self.car1_center, self.car_length, self.car_width, angle=1.56)
+        self.car1_center = np.array([1.9, 0.7])
+        self.car1_verts = self.get_rect_verts(self.car1_center, self.car_length*1.3, self.car_width*2.15, angle=1.57)
         self.car1_verts_closed = self.close_rect(self.car1_verts)
 
-        self.car2_center = np.array([0.2, 1.0])
-        self.car2_verts = self.get_rect_verts(self.car2_center, self.car_length, self.car_width, angle=1.56)
+        self.car2_center = np.array([-0.95, 0.7])
+        self.car2_verts = self.get_rect_verts(self.car2_center, self.car_length*1.3, self.car_width*2.15, angle=1.57)
         self.car2_verts_closed = self.close_rect(self.car2_verts)
 
         self.wall_path = Path(self.wall_verts_closed, self.rect_codes)
@@ -121,13 +121,13 @@ class car_sim_env(object):
         self.lock = threading.Lock()
 
     def get_terminal_pose(self):
-        x_offset = 0.2
-        y_offset = 0.2
+        x_offset = 0.25
+        y_offset = 0.25
         self.terminal_boundary = np.zeros(4)
         self.terminal_xy = np.zeros(2)
 
-        self.terminal_xy[0] = 1.1
-        self.terminal_xy[1] = 1.0
+        self.terminal_xy[0] = 0.475
+        self.terminal_xy[1] = 0.7
 
         self.terminal_boundary[0] = self.terminal_xy[0] - 1 * x_offset
         self.terminal_boundary[1] = self.terminal_xy[0] + 1 * x_offset
@@ -206,7 +206,8 @@ class car_sim_env(object):
             self.t += 1
 
     def sense(self):
-        agent_pose = self.agent_pose.copy()  # [x, y, theta]
+        eagent_pose = self.agent_pose.copy()  # [x, y, thetai]
+        agent_pose = self.agent_pose.copy()
         print(agent_pose)
         if self.reach_stage_one_terminal(agent_pose) or self.has_finished_stage_two:
             grid_width = 0.1
@@ -245,16 +246,16 @@ class car_sim_env(object):
         # [11.25, 33.75) is region 1
         # ...
         # [-33.75, -11.25) is region 15
-        return agent_pose
+        return eagent_pose
 
     def act(self, agent, action):
         self.set_action(action)
         reward = 0.0
-
+        print("act!!!")
         agent_pose = self.sense()
         cur_pose = agent_pose[:2]
         prev_pose = np.array([agent.state.x, agent.state.y])
-
+        agent_pose[2] = 0
         reward -= 0.05 * self.t
 
         if self.collide_walls():
@@ -305,9 +306,12 @@ class car_sim_env(object):
 
 
     def reach_terminal(self, pose):
+        pose[2] = 0
+        print("pose : " , pose)
+        print(self.terminal_boundary)
         if pose[0] > self.terminal_boundary[0] and pose[0] < self.terminal_boundary[1] \
-                and pose[1] > self.terminal_boundary[2]  and pose[1] < self.terminal_boundary[3] \
-                and (pose[2] == 0 or pose[2] == 8):
+                and pose[1] > self.terminal_boundary[2] and pose[1] < self.terminal_boundary[3] \
+                    and (pose[2] == 0 or pose[2] == 8):
             return True
         return False
 
@@ -463,16 +467,17 @@ class car_sim_env(object):
         self.lock.acquire()
         agent_center_to_car1_center = np.linalg.norm(self.agent_center - self.car1_center)
         agent_center_to_car2_center = np.linalg.norm(self.agent_center - self.car2_center)
+        print("collide factor", agent_center_to_car1_center, agent_center_to_car2_center, self.car_diagonal_length)
         car1_collision = False
         car2_collision = False
-        if agent_center_to_car1_center > self.car_diagonal_length:
+        if agent_center_to_car1_center > 1.7:#self.car_diagonal_length:
             # in this case, agent is not possible to collide with car1
             car1_collision = False
         else:
             car1_collision = tools.two_rects_intersect(self.agent_verts, self.car1_verts)
 
         if not car1_collision:
-            if agent_center_to_car2_center > self.car_diagonal_length:
+            if agent_center_to_car2_center > 1.7:#self.car_diagonal_length:
                 car2_collision = False
             else:
                 car2_collision = tools.two_rects_intersect(self.agent_verts, self.car2_verts)
@@ -565,8 +570,8 @@ class car_sim_env(object):
             x = random.uniform(self.agent_start_region[0], self.agent_start_region[1])
             y = random.uniform(self.agent_start_region[2], self.agent_start_region[3])
             '''
-            x = -1.2
-            y = -0.0
+            x = -1.0
+            y = -1.0
             print('start_x:', x, 'start_y:', y)
             theta = 0
             #theta = random.uniform(0, 2 * np.pi) #Generate random car_head angle
