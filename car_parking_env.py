@@ -22,7 +22,7 @@ import re
 class car_sim_env(object):
     valid_actions = ['accel','decel','left_D','right_D','left_R','right_R', 'keep', 'handle_left', 'handle_right', 'brake', 'brake_handle_left', 'brake_handle_right']
     step_length = 0.1
-    acceleration = 0.01
+    acceleration = 0.05
     r_gear = 1 # when r_gear == -1, reverse driving
     delta_angle = 0.03491 # in radian
 
@@ -191,12 +191,12 @@ class car_sim_env(object):
 
         if self.agent is not None:
             if self.t >= self.hard_time_limit:
-                print "Environment.step(): Primary agent hit hard time limit! Trial aborted."
+                #print "Environment.step(): Primary agent hit hard time limit! Trial aborted."
                 self.done = True
                 self.num_hit_time_limit += 1
 
             elif self.enforce_deadline and self.t >= self.deadline:
-                print "Environment.step(): Primary agent ran out of time! Trial aborted."
+                #print "Environment.step(): Primary agent ran out of time! Trial aborted."
                 self.done = True
                 self.num_out_of_time += 1
 # -----------------------------------
@@ -206,8 +206,9 @@ class car_sim_env(object):
 
     def sense(self):
         eagent_pose = self.agent_pose.copy()  # [x, y, thetai]
+         
         agent_pose = self.agent_pose.copy()
-        print(agent_pose)
+        #print(agent_pose)
         if self.reach_stage_one_terminal(agent_pose) or self.has_finished_stage_two:
             grid_width = 0.1
             agent_pose[0] = np.floor((np.floor(agent_pose[0] / (grid_width / 2)) + 1) / 2) * grid_width
@@ -245,17 +246,18 @@ class car_sim_env(object):
         # [11.25, 33.75) is region 1
         # ...
         # [-33.75, -11.25) is region 15
+        
         return eagent_pose
 
     def act(self, agent, action):
         self.set_action(action)
         reward = 0.0
-        print("act!!!")
+        #print("act!!!")
         agent_pose = self.sense()
         cur_pose = agent_pose[:2]
         prev_pose = np.array([agent.state.x, agent.state.y])
-        agent_pose[2] = 0
-        reward -= 0.05 * self.t
+#        agent_pose[2] = 0 #??? why?
+        reward -= 1.00 * self.t
 
         if self.collide_walls():
             print '========================================================================================'
@@ -271,8 +273,20 @@ class car_sim_env(object):
             self.done = True
             reward = -100.0
 
+        elif self.time_over():
+            print '========================================================================================'
+            print 'Time over.'
+            self.done = True
+            reward = -10.0
+
+        elif self.reach2zone(agent_pose):
+            print '========================================================================================'
+            print 'Reached 2nd Zone'
+            reward = 50.0
+            #time.sleep(5)
+
         elif self.reach_terminal(agent_pose):
-            reward = 100.0
+            reward = 10000.0
             self.done = True
             self.succ_times += 1
             print '-----------------------------------------------------------------------------------------'
@@ -281,12 +295,21 @@ class car_sim_env(object):
             print '-----------------------------------------------------------------------------------------'
             print "Environment.act(): Agent has reached destination!"
 
-        elif (agent.state, action) in self.reward_db:
-            reward = 1.0
+        #elif (agent.state, action) in self.reward_db:
+        #    reward = 1.0
 
 
 
         return agent_pose, reward
+
+    def reach2zone(self, pose):
+
+        if (pose[0] > 0.0) and (pose[1] > -0.5) and self.r2z == False :
+            self.r2z = True
+            return True
+        else:
+            return False
+
 
     def approaching_terminal(self, prev_pose, current_pose):
         cur_dist = self.cal_distance(current_pose, self.terminal_xy)
@@ -306,8 +329,8 @@ class car_sim_env(object):
 
     def reach_terminal(self, pose):
         pose[2] = 0
-        print("pose : " , pose)
-        print(self.terminal_boundary)
+        #print("pose : " , pose)
+        #print(self.terminal_boundary)
         if pose[0] > self.terminal_boundary[0] and pose[0] < self.terminal_boundary[1] \
                 and pose[1] > self.terminal_boundary[2] and pose[1] < self.terminal_boundary[3] \
                     and (pose[2] == 0 or pose[2] == 8):
@@ -388,7 +411,7 @@ class car_sim_env(object):
             # At max_steer_angle, the wheel should stay at the max_steer angle
             new_theta_steering = self.max_steer_angle
 
-        print('Wheel angle:', new_theta_steering)
+        #print('Wheel angle:', new_theta_steering)
         new_pose[4] = new_theta_steering
         new_pose[2] = cur_pose[2] + (v/b) * np.tan(new_pose[4])
         new_pose[2] = new_pose[2] % (2 * np.pi)
@@ -460,7 +483,7 @@ class car_sim_env(object):
         self.lock.acquire()
         agent_center_to_car1_center = np.linalg.norm(self.agent_center - self.car1_center)
         agent_center_to_car2_center = np.linalg.norm(self.agent_center - self.car2_center)
-        print("collide factor", agent_center_to_car1_center, agent_center_to_car2_center, self.car_diagonal_length)
+        #print("collide factor", agent_center_to_car1_center, agent_center_to_car2_center, self.car_diagonal_length)
         car1_collision = False
         car2_collision = False
         if agent_center_to_car1_center > 1.7:#self.car_diagonal_length:
@@ -504,7 +527,24 @@ class car_sim_env(object):
         else:
             return False
 
+    def time_over(self):
+        self.lock.acquire()
+        timeover = False
+        print "Timeover Checking..."
 
+        if self.t > 5:
+            if abs(self.agent_pose[0] - self.starting_pose[0]) < 0.05:
+                print "=======Timeover========"
+                timeover = True
+        else:
+            timeover = False
+
+        if timeover:
+            self.lock.release()
+            return True
+        else:
+            self.lock.release()
+            return False
 
     def collide_walls(self):
         self.lock.acquire()
@@ -565,7 +605,7 @@ class car_sim_env(object):
             '''
             x = -1.0
             y = -1.0
-            print('start_x:', x, 'start_y:', y)
+            #print('start_x:', x, 'start_y:', y)
             theta = 0
             #theta = random.uniform(0, 2 * np.pi) #Generate random car_head angle
             if x < self.car1_verts[1,0] and x > self.car2_verts[0,0] \
@@ -700,7 +740,7 @@ class car_sim_env(object):
         dist = abs(x - self.terminal_xy[0]) / self.step_length + abs(y - self.terminal_xy[1]) / self.step_length
         deadline = max(int(dist) * 4,20)
         deadline = min(deadline, 150)
-        print 'deadline:',deadline
+        #print 'deadline:',deadline
         return deadline
 
 
