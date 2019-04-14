@@ -16,7 +16,7 @@ def get_line_coeffi(point1, point2):
         x = np.array([point1[0], point2[0]])
         y = np.array([point1[1], point2[1]])
         a = np.vstack([x, np.ones(len(x))]).T
-        m, c =np.linalg.lstsq(a, y)[0] # y = mx + c
+        m, c =np.linalg.lstsq(a, y, rcond=-1)[0] # y = mx + c
         A = m
         B = -1
         C = c
@@ -38,7 +38,7 @@ def two_rects_intersect(rect1_verts, rect2_verts):
             else:
                 A = np.array([[a1, b1], [a2, b2]])
                 C = -np.array([[c1], [c2]])
-                x, y = np.linalg.lstsq(A, C)[0]
+                x, y = np.linalg.lstsq(A, C, rcond=-1)[0]
                 # print (x - line1[0, 0]) * (x - line1[1, 0])
                 # print (y - line1[0, 1]) * (y - line1[1, 1])
                 # print (x - line2[0, 0]) * (x - line2[1, 0])
