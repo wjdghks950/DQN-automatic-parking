@@ -5,15 +5,42 @@
 # -----------------------------------
 
 import numpy as np
+import time
 import random
 from car_parking_env import car_sim_env
 from car_parking_env import Agent
 import os, sys, termios, tty
 import re
 from collections import namedtuple
-states = namedtuple('states','x y theta')
 import cPickle
 import threading
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+import torchvision.transforms as T
+
+states = namedtuple('states',('x', 'y', 'theta_heading', 's', 'theta_steering'))
+
+class DQN(nn.Module):
+    def __init__(self, n_states, n_actions):
+        super(DQN, self).__init__()
+        self.fc1 = nn.Linear(n_states, 64)
+#        self.bn1 = nn.BatchNorm2d(64)
+        self.fc2 = nn.Linear(64,128)
+#        self.bn2 = nn.BatchNorm2d(128)
+        self.fc3 = nn.Linear(128, n_actions)
+#        self.bn3 = nn.BatchNorm2d(n_actions)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        out = self.relu(self.fc1(x))
+        out = self.relu(self.fc2(out))
+        out = self.relu(self.fc3(out))
+        return out
+        #return out.view(out.size(0), -1)
+
 
 class LearningAgent(Agent):
     """An agent that learns to automatic parking"""
@@ -21,17 +48,64 @@ class LearningAgent(Agent):
     def __init__(self, env, test = False):
         super(LearningAgent, self).__init__(env)  # sets self.env = env, state = None
         self.test = test
-        if not self.test:
-            self.epsilon = 0.4
-        else:
+	self.epsilon_decay = 0.95
+	self.epsilon_start = 1.0
+	self.epsilon_end = 0.05
+
+        if self.test:
             self.epsilon = 0
-        print 'epsilon:',self.epsilon
+        #print 'epsilon:',self.epsilon
 
         self.learning_rate = 0.90
 
-        self.default_q = 0.0
+#        self.default_q = 0.0
         self.gamma = 0.8
 
+        self.state = None
+        #self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cpu")
+        if torch.cuda.is_available() :
+            print "using cuda..."
+        else :
+            print "using cpu..."
+        
+        self.policy_net = DQN(n_states=5, n_actions=12).to(self.device)
+        self.target_net = DQN(n_states=5, n_actions=12).to(self.device)
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.target_net.eval()
+        
+        self.optimizer = optim.RMSprop(self.policy_net.parameters())
+        print "device", self.device
+        print "q net", self.policy_net
+        print "target net", self.target_net
+
+    def optimize_model(self, state, action, reward):
+        state = torch.Tensor(state, device=self.device)
+#        print "action : ", action
+#        print "action_int : ", car_sim_env.valid_actions.index(action)
+        action = torch.LongTensor([car_sim_env.valid_actions.index(action)])
+        
+#        print "action_tensor : ", action
+#        Q = self.policy_net(state).gather(1, action)
+        Q = self.policy_net(state)
+#        print "Q", Q
+        Q = Q.index_select(dim=0, index=action)
+#        print "Q_ind", Q
+        V_next = torch.zeros(1, device=self.device)
+        V_next = self.target_net(state).max()[0].detach()
+
+        expected_Q = (V_next * self.gamma) + reward
+
+        loss = F.smooth_l1_loss(Q, expected_Q)
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        for param in self.policy_net.parameters():
+            param.grad.data.clamp_(-1, 1)
+        self.optimizer.step()
+
+
+        '''
         self.Q_values = {}
         self.state = None
         self.Q_stage_one = {}
@@ -41,12 +115,19 @@ class LearningAgent(Agent):
         self.Q_to_terminal_two = {}
         self.Q_to_terminal_three = {}
 
+        if 0 :
+            self.load_q_table()
+        elif 0 :
+            self.init_q_table()
+            ## not yet implementation
+
+    def load_q_table(self):
         parent_path = os.path.dirname(os.path.realpath(__file__))
         data_path = os.path.join(parent_path, 'q_table')
         print 'restoring q tables from {}'.format(data_path)
         with open(os.path.join(data_path, 'far_region.cpickle'), 'rb') as f:
             self.Q_stage_one = cPickle.load(f)
-            print '    stage one q table length:',len(self.Q_stage_one)
+            print '    stage one q table length:',len(self.Q_stage_one), self.Q_stage_one
         with open(os.path.join(data_path, 'near_region.cpickle'), 'rb') as f:
             self.Q_stage_two = cPickle.load(f)
             print '    stage two q table length:', len(self.Q_stage_two)
@@ -64,25 +145,31 @@ class LearningAgent(Agent):
             print '    top left q table length:', len(self.Q_to_terminal_three)
         print 'restoring done...'
 
-
-
+    def init_q_table(self):
+        print "There is no loading file, making Q table...".format(trial)
+        init_q_value = {} ## ???????????
+    
+        q_table_file = os.path.join(data_path, '.cpickle')
+        with open(q_table_file, 'wb') as f:
+            cPickle.dump(init_q_value, f, protocol=cPickle.HIGHEST_PROTOCOL)
+    
     def reset(self):
         self.state = None
         self.action = None
         self.reward = None
-
+    '''
 
     def update(self):
         if self.state == None:
             agent_pose = self.env.sense()
-            self.state = states(x = agent_pose[0], y = agent_pose[1], theta = agent_pose[2])
-
+            self.state = states(x = agent_pose[0], y = agent_pose[1], theta_heading = agent_pose[2], s = agent_pose[3], theta_steering = agent_pose[4])
+        '''
         if self.env.region_idx == 2:
             print '   agent in stage one...'
             self.Q_values = self.Q_stage_one.copy()
         elif self.env.region_idx == 1:
             print '   agent in stage two...'
-            self.Q_values = self.Q_stage_two.copy()
+            self.Q_values = self.Q_stage_two.copy() ##This code resets the self.Q_values to {}
         else:
             if self.env.to_terminal_idx == 0:
                 print '   agent in stage three, starting from bottom left...'
@@ -97,8 +184,10 @@ class LearningAgent(Agent):
                 print '   agent in stage three, starting from top left...'
                 self.Q_values = self.Q_to_terminal_three.copy()
 
-        print 'Q_table length:',len(self.Q_values)
-
+        #print 'Q_table length:',len(self.Q_values)
+        #print '===================================='
+        #print 'Current State: ', self.state
+        '''
 
 
         step = self.env.get_steps()
@@ -106,40 +195,51 @@ class LearningAgent(Agent):
             deadline = self.env.get_deadline()
 
         # Select action according to your policy
-        action, max_q_value = self.get_action(self.state)
+        action = self.get_action(self.state)
+        #print "action: " + str(action) + "\n"
+        #time.sleep(5)
+
         # print 'max_q_value:',max_q_value
 
         # Execute action and get reward
         next_agent_pose,reward = self.env.act(self, action)
-        self.next_state = states(x=next_agent_pose[0], y=next_agent_pose[1], theta=next_agent_pose[2])
+        self.next_state = states(x=next_agent_pose[0], y=next_agent_pose[1], theta_heading=next_agent_pose[2], s=next_agent_pose[3], theta_steering=next_agent_pose[4])
 
         # Learn policy based on state, action, reward
         if not self.test:
-            self.update_q_values(self.state, action, self.next_state, reward)
+            self.optimize_model(self.state, action, reward)
+            #self.update_q_values(self.state, action, self.next_state, reward)
+            #print self.Q_values
 
-            if self.env.enforce_deadline:
-                print "LearningAgent.update(): step = {}, deadline = {}, state = {}, action = {}, reward = {}".format(step, deadline,
-                                                                                                                      self.next_state, action, reward)
-            else:
-                print "LearningAgent.update(): step = {}, state = {}, action = {}, reward = {}".format(step, self.next_state,
-                                                                                                        action, reward)
+            # if self.env.enforce_deadline:
+            #     print "LearningAgent.update(): step = {}, deadline = {}, state = {}, action = {}, reward = {}".format(step, deadline,
+            #                                                                                                           self.next_state, action, reward)
+            # else:
+            #     print "LearningAgent.update(): step = {}, state = {}, action = {}, reward = {}".format(step, self.next_state,
+            #                                                                                            action, reward)
         self.state = self.next_state
-
+    '''
     def set_q_tables(self, path):
         with open(path, 'rb') as f:
             self.Q_values = cPickle.load(f)
 
-
+    '''
     def save_state(self, state, action):
     	self.prev_state = self.state
         self.prev_action = action
 
-
+    '''
     def update_q_values(self, state, action, next_state, reward):
+        #print "Updating Q Vale -------------"
     	old_q_value = self.Q_values.get((state,action), self.default_q)
         action, max_q_value = self.get_maximum_q_value(next_state)
     	new_q_value = old_q_value + self.learning_rate * (reward + self.gamma * max_q_value - old_q_value)
-    	self.Q_values[(state,action)] = new_q_value
+        self.Q_values[(state,action)] = new_q_value
+        print "Q Lenght:  ", len(self.Q_values)
+        #print "Q values++++ \n" , self.Q_values
+        print "+++new Q Value+++: " + str(new_q_value)
+        print "current state: ", (state,action)
+    	
         # print 'Q_values.shape',len(self.Q_values)
 
     def get_maximum_q_value(self, state):
@@ -153,87 +253,25 @@ class LearningAgent(Agent):
                 action_selected = random.choice([action_selected, action])
         return action_selected, q_value_selected
 
-    def getch(self):
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        try:
-            tty.setraw(sys.stdin.fileno())
-            ch = sys.stdin.read(1)
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        return ch
+    def get_action(self, state): 
+        state = torch.Tensor(state, device=self.device)
+	sample = random.random()
 
-    def read_key(self):
-        if True:
-            ch = self.getch()
-            if ch == 'w':
-                print 'accel'
-                set_action= car_sim_env.valid_actions[0]
-            elif ch == 's':
-                print 'decel'
-                set_action= car_sim_env.valid_actions[1]
-            elif ch == 'q':
-                print 'left_D'
-                set_action= car_sim_env.valid_actions[2]
-            elif ch == 'e':
-                print 'right_D'
-                set_action= car_sim_env.valid_actions[3]
-            elif ch == 'a':
-                print 'left_R'
-                set_action= car_sim_env.valid_actions[4]
-            elif ch == 'd':
-                print 'right_R'
-                set_action= car_sim_env.valid_actions[5]
-            elif ch == 'z':
-                print 'handle_left'
-                set_action= car_sim_env.valid_actions[7]
-            elif ch == 'x':
-                print 'keep'
-                set_action= car_sim_env.valid_actions[6]
-            elif ch == 'c':
-                print 'handle_right'
-                set_action= car_sim_env.valid_actions[8]
-            elif ch == 'f':
-                print 'brake_handle_left'
-                set_action= car_sim_env.valid_actions[10]
-            elif ch == 'g':
-                print 'break'
-                set_action= car_sim_env.valid_actions[9]
-            elif ch == 'h':
-                print 'brake_handle_right'
-                set_action= car_sim_env.valid_actions[11]
-                # Return the car to its starting point
-            elif ch == '\x03' or ch == '\x71':  # ctrl + c or 'q'
-                sys.exit()
-            else:
-                print ord(ch)
-                set_action = 'Invalid key'
-        return set_action
+	self.epsilon = self.epsilon * self.epsilon_decay #TODO: Set epsilon_threshold
 
-    def get_action(self, state):
-        action_selected = self.read_key()
-        if action_selected is not 'reset':
-            q_value_selected = self.get_q_value(state, action_selected)
-        else:
-            # if car position is reset
-            q_value_selected = 0 
-        '''
-        if random.random() < self.epsilon:
-    		action_selected = random.choice(car_sim_env.valid_actions)
-    		q_value_selected = self.get_q_value(state, action_selected)
-    	else:
-            action_selected, q_value_selected = self.get_maximum_q_value(state)
-        '''
-    	return action_selected, q_value_selected
+        if random.random() > self.epsilon :
+            with torch.no_grad():
+                q_values = self.policy_net(state)
+                action_selected = car_sim_env.valid_actions[q_values.argmax()]
+                #print "\tget_action : q_val, act", (action_selected)
+        else :
+            action_selected = random.choice(car_sim_env.valid_actions)
 
-    def get_q_value(self, state, action):
-    	return self.Q_values.get((state,action), self.default_q)
-
-
+        return action_selected
 
 def run(restore):
     env = car_sim_env()
-    agt = env.create_agent(LearningAgent, test=True)
+    agt = env.create_agent(LearningAgent, test=False)
     env.set_agent(agt, enforce_deadline=False)
 
 
@@ -251,6 +289,8 @@ def run(restore):
 def train(env, agt, restore):
     n_trials = 9999999999
     quit = False
+    max_index = 0
+    '''
     parent_path = os.path.dirname(os.path.realpath(__file__))
     data_path = os.path.join(parent_path, 'q_table')
     lfd_path = os.path.join(parent_path, 'LfD')
@@ -268,18 +308,18 @@ def train(env, agt, restore):
         if fileindex >= max_index:
             max_index = fileindex
             filepath = os.path.join(data_path, filename)
-
+    
     if restore:
         if os.path.exists(filepath):
-            print 'restoring Q_values from {} ...'.format(filepath)
+            #print 'restoring Q_values from {} ...'.format(filepath)
             agt.set_q_tables(filepath)
-            print 'restoring done...'
+            #print 'restoring done...'
 
 
-
+    '''
     for trial in xrange(max_index + 1, n_trials):
         # time.sleep(3)
-        print "Simulator.run(): Trial {}".format(trial)  # [debug]
+        #print "Simulator.run(): Trial {}".format(trial)  # [debug]
         if not agt.test:
             if trial > 80000 and trial < 150000:
                 agt.epsilon = 0.3
@@ -349,9 +389,5 @@ def train(env, agt, restore):
                 break
 
 
-
 if __name__ == '__main__':
     run(restore = True)
-
-
-
