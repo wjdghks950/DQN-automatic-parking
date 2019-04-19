@@ -221,7 +221,7 @@ class LearningAgent(Agent):
     def get_action(self, state): 
         state = torch.Tensor(state, device=self.device)
 
-	self.epsilon = self.epsilon * self.epsilon_decay
+	    self.epsilon = self.epsilon * self.epsilon_decay
         
         if random.random() > self.epsilon :
             with torch.no_grad():
