@@ -49,7 +49,7 @@ class LearningAgent(Agent):
         super(LearningAgent, self).__init__(env)  # sets self.env = env, state = None
         self.test = test
 	self.epsilon_decay = 0.95
-	self.epsilon_start = 1.0
+	self.epsilon = 1.0
 	self.epsilon_end = 0.05
 
         if self.test:
@@ -105,65 +105,38 @@ class LearningAgent(Agent):
             param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
 
+    def get_screen(self):
+        #TODO: Return 2 channel input to CNN : 1st channel for obstacles, 2nd channel for the car agent
+        pass
 
-        '''
-        self.Q_values = {}
-        self.state = None
-        self.Q_stage_one = {}
-        self.Q_stage_two = {}
-        self.Q_to_terminal_zero = {}
-        self.Q_to_terminal_one = {}
-        self.Q_to_terminal_two = {}
-        self.Q_to_terminal_three = {}
-
-        if 0 :
-            self.load_q_table()
-        elif 0 :
-            self.init_q_table()
-            ## not yet implementation
-
-    def load_q_table(self):
-        parent_path = os.path.dirname(os.path.realpath(__file__))
-        data_path = os.path.join(parent_path, 'q_table')
-        print 'restoring q tables from {}'.format(data_path)
-        with open(os.path.join(data_path, 'far_region.cpickle'), 'rb') as f:
-            self.Q_stage_one = cPickle.load(f)
-            print '    stage one q table length:',len(self.Q_stage_one), self.Q_stage_one
-        with open(os.path.join(data_path, 'near_region.cpickle'), 'rb') as f:
-            self.Q_stage_two = cPickle.load(f)
-            print '    stage two q table length:', len(self.Q_stage_two)
-        with open(os.path.join(data_path, 'bottom_left.cpickle'), 'rb') as f:
-            self.Q_to_terminal_zero = cPickle.load(f)
-            print '    bottom left q table length:', len(self.Q_to_terminal_zero)
-        with open(os.path.join(data_path, 'bottom_right.cpickle'), 'rb') as f:
-            self.Q_to_terminal_one = cPickle.load(f)
-            print '    bottom right q table length:', len(self.Q_to_terminal_one)
-        with open(os.path.join(data_path, 'top_right.cpickle'), 'rb') as f:
-            self.Q_to_terminal_two = cPickle.load(f)
-            print '    top right q table length:', len(self.Q_to_terminal_two)
-        with open(os.path.join(data_path, 'top_left.cpickle'), 'rb') as f:
-            self.Q_to_terminal_three = cPickle.load(f)
-            print '    top left q table length:', len(self.Q_to_terminal_three)
-        print 'restoring done...'
-
-    def init_q_table(self):
-        print "There is no loading file, making Q table...".format(trial)
-        init_q_value = {} ## ???????????
-    
-        q_table_file = os.path.join(data_path, '.cpickle')
-        with open(q_table_file, 'wb') as f:
-            cPickle.dump(init_q_value, f, protocol=cPickle.HIGHEST_PROTOCOL)
-    
-    def reset(self):
-        self.state = None
-        self.action = None
-        self.reward = None
-    '''
 
     def update(self):
         if self.state == None:
             agent_pose = self.env.sense()
             self.state = states(x = agent_pose[0], y = agent_pose[1], theta_heading = agent_pose[2], s = agent_pose[3], theta_steering = agent_pose[4])
+
+        if self.env.region_idx == 2:
+            print ' agent in stage one...'
+            self.Q_values = self.Q_stage_one.copy()
+        elif self.env.region_idx == 1:
+            print ' agent in stage two...'
+            self.Q_values = self.Q_stage_two.copy() # Resets the self.Q_value to {}
+        else:
+            if self.env.to_terminal_idx == 0:
+                print '   agent in stage three, starting from bottom left...'
+                self.Q_values = self.Q_to_terminal_zero.copy()
+            elif self.env.to_terminal_idx == 1:
+                print '   agent in stage three, starting from bottom right...'
+                self.Q_values = self.Q_to_terminal_one.copy()
+            elif self.env.to_terminal_idx == 2:
+                print '   agent in stage three, starting from top right...'
+                self.Q_values = self.Q_to_terminal_two.copy()
+            else:
+                print '   agent in stage three, starting from top left...'
+                self.Q_values = self.Q_to_terminal_three.copy()
+        #print 'Q_table length:',len(self.Q_values)
+        #print '===================================='
+        #print 'Current State: ', self.state
 
         step = self.env.get_steps()
         if self.env.enforce_deadline:
@@ -200,7 +173,7 @@ class LearningAgent(Agent):
         action, max_q_value = self.get_maximum_q_value(next_state)
     	new_q_value = old_q_value + self.learning_rate * (reward + self.gamma * max_q_value - old_q_value)
         self.Q_values[(state,action)] = new_q_value
-        print "Q Lenght:  ", len(self.Q_values)
+        print "Q Length:  ", len(self.Q_values)
         #print "Q values++++ \n" , self.Q_values
         print "+++new Q Value+++: " + str(new_q_value)
         print "current state: ", (state,action)
@@ -221,7 +194,7 @@ class LearningAgent(Agent):
     def get_action(self, state): 
         state = torch.Tensor(state, device=self.device)
 
-	    self.epsilon = self.epsilon * self.epsilon_decay
+	self.epsilon = self.epsilon * self.epsilon_decay
         
         if random.random() > self.epsilon :
             with torch.no_grad():
@@ -238,11 +211,11 @@ class LearningAgent(Agent):
             action_selected, q_value_selected = self.get_maximum_q_value(state)
 
         return action_selected
-    '''
+
     def get_q_value(self, state, action):
         #print self.Q_values
         return self.Q_values.get((state,action), self.default_q)
-    '''
+
 def run(restore):
     env = car_sim_env()
     agt = env.create_agent(LearningAgent, test=False)

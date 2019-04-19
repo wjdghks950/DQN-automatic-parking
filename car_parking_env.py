@@ -638,7 +638,7 @@ class car_sim_env(object):
         head_pose = np.zeros(2)
         head_pose[0] = self.agent_pose[0] + delta_x
         head_pose[1] = self.agent_pose[1] + delta_y
-        self.agent_head_patch = plt.Circle(head_pose, 0.02, color='red')
+        self.agent_head_patch = plt.Circle(head_pose, 0.1, color='red')
         self.agent_center_patch = plt.Circle(self.agent_center, 0.02, color='brown')
         self.agent_patch = plt.Polygon(self.agent_verts, facecolor='cyan', edgecolor='blue')
 
