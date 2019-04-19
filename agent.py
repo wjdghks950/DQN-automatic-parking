@@ -164,32 +164,6 @@ class LearningAgent(Agent):
         if self.state == None:
             agent_pose = self.env.sense()
             self.state = states(x = agent_pose[0], y = agent_pose[1], theta_heading = agent_pose[2], s = agent_pose[3], theta_steering = agent_pose[4])
-        '''
-        if self.env.region_idx == 2:
-            print '   agent in stage one...'
-            self.Q_values = self.Q_stage_one.copy()
-        elif self.env.region_idx == 1:
-            print '   agent in stage two...'
-            self.Q_values = self.Q_stage_two.copy() ##This code resets the self.Q_values to {}
-        else:
-            if self.env.to_terminal_idx == 0:
-                print '   agent in stage three, starting from bottom left...'
-                self.Q_values = self.Q_to_terminal_zero.copy()
-            elif self.env.to_terminal_idx == 1:
-                print '   agent in stage three, starting from bottom right...'
-                self.Q_values = self.Q_to_terminal_one.copy()
-            elif self.env.to_terminal_idx == 2:
-                print '   agent in stage three, starting from top right...'
-                self.Q_values = self.Q_to_terminal_two.copy()
-            else:
-                print '   agent in stage three, starting from top left...'
-                self.Q_values = self.Q_to_terminal_three.copy()
-
-        #print 'Q_table length:',len(self.Q_values)
-        #print '===================================='
-        #print 'Current State: ', self.state
-        '''
-
 
         step = self.env.get_steps()
         if self.env.enforce_deadline:
@@ -209,16 +183,9 @@ class LearningAgent(Agent):
         # Learn policy based on state, action, reward
         if not self.test:
             self.optimize_model(self.state, action, reward)
-            #self.update_q_values(self.state, action, self.next_state, reward)
-            #print self.Q_values
 
-            # if self.env.enforce_deadline:
-            #     print "LearningAgent.update(): step = {}, deadline = {}, state = {}, action = {}, reward = {}".format(step, deadline,
-            #                                                                                                           self.next_state, action, reward)
-            # else:
-            #     print "LearningAgent.update(): step = {}, state = {}, action = {}, reward = {}".format(step, self.next_state,
-            #                                                                                            action, reward)
         self.state = self.next_state
+
     def set_q_tables(self, path):
         with open(path, 'rb') as f:
             self.Q_values = cPickle.load(f)
@@ -253,6 +220,8 @@ class LearningAgent(Agent):
 
     def get_action(self, state): 
         state = torch.Tensor(state, device=self.device)
+
+	self.epsilon = self.epsilon * self.epsilon_decay
         
         if random.random() > self.epsilon :
             with torch.no_grad():
