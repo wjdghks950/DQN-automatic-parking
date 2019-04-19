@@ -58,11 +58,12 @@ class LearningAgent(Agent):
 
         self.learning_rate = 0.90
 
-#        self.default_q = 0.0
+#       self.default_q = 0.0
         self.gamma = 0.8
 
         self.state = None
-        #self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+#       self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.device = torch.device("cpu")
         if torch.cuda.is_available() :
             print "using cuda..."
@@ -218,17 +219,14 @@ class LearningAgent(Agent):
             #     print "LearningAgent.update(): step = {}, state = {}, action = {}, reward = {}".format(step, self.next_state,
             #                                                                                            action, reward)
         self.state = self.next_state
-    '''
     def set_q_tables(self, path):
         with open(path, 'rb') as f:
             self.Q_values = cPickle.load(f)
 
-    '''
     def save_state(self, state, action):
     	self.prev_state = self.state
         self.prev_action = action
 
-    '''
     def update_q_values(self, state, action, next_state, reward):
         #print "Updating Q Vale -------------"
     	old_q_value = self.Q_values.get((state,action), self.default_q)
@@ -255,10 +253,7 @@ class LearningAgent(Agent):
 
     def get_action(self, state): 
         state = torch.Tensor(state, device=self.device)
-	sample = random.random()
-
-	self.epsilon = self.epsilon * self.epsilon_decay #TODO: Set epsilon_threshold
-
+        
         if random.random() > self.epsilon :
             with torch.no_grad():
                 q_values = self.policy_net(state)
@@ -267,8 +262,18 @@ class LearningAgent(Agent):
         else :
             action_selected = random.choice(car_sim_env.valid_actions)
 
-        return action_selected
+        if random.random() < self.epsilon:
+            action_selected = random.choice(car_sim_env.valid_actions)
+            q_value_selected = self.get_q_value(state, action_selected)
+        else:
+            action_selected, q_value_selected = self.get_maximum_q_value(state)
 
+        return action_selected
+    '''
+    def get_q_value(self, state, action):
+        #print self.Q_values
+        return self.Q_values.get((state,action), self.default_q)
+    '''
 def run(restore):
     env = car_sim_env()
     agt = env.create_agent(LearningAgent, test=False)
