@@ -73,6 +73,11 @@ class LearningAgent(Agent):
         print "q net", self.policy_net
         print "target net", self.target_net
 
+    def update_epsilon(self):
+        if self.epsilon >= self.epsilon_end:
+            self.epsilon *= self.epsilon_decay
+        print "Exploration rate: ", self.epsilon
+
     def optimize_model(self, state, action, reward):
         state = torch.Tensor(state, device=self.device)
 #        print "action : ", action
@@ -258,13 +263,6 @@ class LearningAgent(Agent):
         else :
             action_selected = random.choice(car_sim_env.valid_actions)
 
-        '''
-        if random.random() < self.epsilon:
-            action_selected = random.choice(car_sim_env.valid_actions)
-            q_value_selected = self.get_q_value(state, action_selected)
-        else:
-            action_selected, q_value_selected = self.get_maximum_q_value(state)
-        '''
         return action_selected
     '''
     def get_q_value(self, state, action):
@@ -339,9 +337,9 @@ def train(env, agt, restore):
             except KeyboardInterrupt:
                 quit = True
             finally:
-                if quit or env.done:
+                if env.done or quit:
+                    agt.update_epsilon()
                     break
-
 
         test_interval = 100
         if trial % test_interval == 0:
