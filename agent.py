@@ -79,6 +79,10 @@ class LearningAgent(Agent):
             self.epsilon *= self.epsilon_decay
         print "Exploration rate: ", self.epsilon
 
+    def get_image(self, fpath):
+        pass
+        
+
     def optimize_model(self, state, action, reward):
         state = torch.Tensor(state, device=self.device)
 #        print "action : ", action
