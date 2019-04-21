@@ -8,6 +8,7 @@ import re
 from collections import namedtuple
 import cPickle
 import threading
+import argparse
 
 from model.model import DQN
 
@@ -17,7 +18,24 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 
+parser = argparse.ArgumentParser(description='Model parameters')
+parser.add_argument('-d', '--discount', default=0.8, type=float, help='Discount value(gamma) for Discounted Return')
+parser.add_argument('-e', '--epsilon', default=0.95, type=float, help='Exploration rate')
+parser.add_argument('-ed', '--eps_decay', default=0.99, type=float, help='Epsilon decay rate')
+parser.add_argument('-b', '--batch', default=32, type=int, help='Batch size')
+parser.add_argument('-o', '--observe', default=5, type=int, help='Observation frequency')
+parser.add_argument('-lr', '--lrate', default=0.01, type=float, help='Learning rate of DNN')
+
+args = parser.parse_args()
+
 states = namedtuple('states', ('x', 'y', 'theta_heading', 's', 'theta_steering'))
+
+print "------[Initial parameters]------"
+print "Initial epsilon: ", args.epsilon
+print "Epsilon decay rate: ", args.eps_decay
+print "Batch size: ", args.batch
+print "Learning rate: ", args.lrate
+print "Discount factor(gamma): ", args.discount
 
 class LearningAgent(Agent):
     """An agent that learns to automatic parking"""
@@ -25,18 +43,18 @@ class LearningAgent(Agent):
     def __init__(self, env, test = False):
         super(LearningAgent, self).__init__(env)  # sets self.env = env, state = None
         self.test = test
-        self.epsilon_start = 0.95
-        self.epsilon_decay = 0.99
+        self.epsilon_start = args.epsilon
+        self.epsilon_decay = args.eps_decay
         self.epsilon_end = 0.05
 
         if not self.test:
             self.epsilon = self.epsilon_start
         else:
-            self.epsilon = 0
+            self.epsilon = 0.0
 
-        self.learning_rate = 0.90
+        self.learning_rate = args.lrate
 
-        self.gamma = 0.8
+        self.gamma = args.discount
 
         self.state = None
 #        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
