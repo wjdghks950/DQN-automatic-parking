@@ -1,8 +1,3 @@
-# -----------------------------------
-# car parking simulation environment in matplotlib
-# Author: Tao Chen
-# Date: 2016.11.16
-# -----------------------------------
 import matplotlib as mpl
 import numpy as np
 import matplotlib.pyplot as plt
@@ -79,10 +74,21 @@ class car_sim_env(object):
         self.car2_path = Path(self.car2_verts_closed, self.rect_codes)
 
         self.env_fig = plt.figure()
+        #self.car_fig = plt.figure()
+        '''
+        self.ax adds environment to our plt.figure (self.env_fig)
+        self.ax2 adds car to out plt.figure (self.car_fig)
+        '''
         self.ax = self.env_fig.add_subplot(111, aspect='equal')
+        self.ax.set_title('Parking Environment')
+        self.ax.axis('off')
+        #self.ax2 = self.car_fig.add_subplot(111, aspect='equal')
+        #self.ax2.set_title('Car agent')
+        #self.ax2.axis('off')
+
         self.wall_patch = mpl_patches.PathPatch(self.wall_path, edgecolor='black', facecolor='white', lw=5)
-        self.car1_patch = mpl_patches.PathPatch(self.car1_path, facecolor='red', lw=0)
-        self.car2_patch = mpl_patches.PathPatch(self.car2_path, facecolor='red', lw=0)
+        self.car1_patch = mpl_patches.PathPatch(self.car1_path, facecolor='black', lw=0)
+        self.car2_patch = mpl_patches.PathPatch(self.car2_path, facecolor='black', lw=0)
         self.ax.add_patch(self.wall_patch)
         self.ax.add_patch(self.car1_patch)
         self.ax.add_patch(self.car2_patch)
@@ -100,6 +106,7 @@ class car_sim_env(object):
         self.get_stage_one_terminal()
         self.get_stage_two_terminal()
         self.set_agent_start_region()
+        self.r2z = False
 
         self.done = False
         self.t = 0
@@ -638,12 +645,12 @@ class car_sim_env(object):
         head_pose = np.zeros(2)
         head_pose[0] = self.agent_pose[0] + delta_x
         head_pose[1] = self.agent_pose[1] + delta_y
-        self.agent_head_patch = plt.Circle(head_pose, 0.1, color='red')
+        self.agent_head_patch = plt.Circle(head_pose, 0.02, color='red')
         self.agent_center_patch = plt.Circle(self.agent_center, 0.02, color='brown')
         self.agent_patch = plt.Polygon(self.agent_verts, facecolor='cyan', edgecolor='blue')
 
 
-
+    # Update agent animation - the car agent is updated
     def update_agent_animation(self):
         self.lock.acquire()
         self.agent_patch.set_xy(self.agent_verts)
@@ -656,6 +663,7 @@ class car_sim_env(object):
         head_pose[1] = self.agent_center[1] + delta_y
         self.agent_head_patch.center = head_pose
         self.agent_center_patch.center = self.agent_center
+
         self.lock.release()
 
 
@@ -684,23 +692,32 @@ class car_sim_env(object):
     def close_rect(self, rect):
         return np.concatenate((rect, rect[0,:].reshape(1,2)), axis = 0)
 
-    def animate(self, i):
+    def animate_car(self, i):
         # self.agent_pose[2] = np.pi / 50 * (i % 50) * 2
         # self.agent_pose[0] = random.uniform(-3,3)
         # print '.........................................................................................'
         self.update_agent_animation()
         return [self.agent_patch, self.agent_head_patch, self.agent_center_patch]
 
-
+    def animate_env(self, i):
+        # self.agent_pose[2] = np.pi / 50 * (i % 50) * 2
+        # self.agent_pose[0] = random.uniform(-3,3)
+        # print '.........................................................................................'
+        pass
 
     def plt_show(self):
         # print '...........................'
-        self.anim = animation.FuncAnimation(self.env_fig, self.animate,
+        self.anim = animation.FuncAnimation(self.env_fig, self.animate_car,
                                        init_func=None,
                                        frames=1000,
                                        interval=1,
                                        # repeat= False,
                                        blit=True)
+        '''
+        self.anim = animation.FuncAnimation(self.car_fig, self.animate_car,
+                                        init_func=None, frames=1000,
+                                        interval =1, blit=True)
+        '''
         # print '...........................'
         plt.gca().invert_xaxis()
         plt.gca().invert_yaxis()
