@@ -13,6 +13,9 @@ import tools
 from datetime import datetime
 import time
 import re
+import os
+
+DATA_DIR='data'
 
 class car_sim_env(object):
     valid_actions = ['accel','decel','left_D','right_D','left_R','right_R', 'keep', 'handle_left', 'handle_right', 'brake', 'brake_handle_left', 'brake_handle_right']
@@ -73,22 +76,16 @@ class car_sim_env(object):
         self.car1_path = Path(self.car1_verts_closed, self.rect_codes)
         self.car2_path = Path(self.car2_verts_closed, self.rect_codes)
 
-        self.env_fig = plt.figure()
-        #self.car_fig = plt.figure()
+        self.env_fig = plt.figure() # both env and car patches
         '''
-        self.ax adds environment to our plt.figure (self.env_fig)
-        self.ax2 adds car to out plt.figure (self.car_fig)
+        self.ax adds environment(transparent) and car to our plt.figure (self.env_fig)
         '''
         self.ax = self.env_fig.add_subplot(111, aspect='equal')
-        self.ax.set_title('Parking Environment')
         self.ax.axis('off')
-        #self.ax2 = self.car_fig.add_subplot(111, aspect='equal')
-        #self.ax2.set_title('Car agent')
-        #self.ax2.axis('off')
 
-        self.wall_patch = mpl_patches.PathPatch(self.wall_path, edgecolor='black', facecolor='white', lw=5)
-        self.car1_patch = mpl_patches.PathPatch(self.car1_path, facecolor='black', lw=0)
-        self.car2_patch = mpl_patches.PathPatch(self.car2_path, facecolor='black', lw=0)
+        self.wall_patch = mpl_patches.PathPatch(self.wall_path, edgecolor='white', facecolor='white', lw=5)
+        self.car1_patch = mpl_patches.PathPatch(self.car1_path, facecolor='white', lw=0)
+        self.car2_patch = mpl_patches.PathPatch(self.car2_path, facecolor='white', lw=0)
         self.ax.add_patch(self.wall_patch)
         self.ax.add_patch(self.car1_patch)
         self.ax.add_patch(self.car2_patch)
@@ -116,6 +113,8 @@ class car_sim_env(object):
         self.ax.add_patch(self.agent_head_patch)
         self.ax.add_patch(self.agent_center_patch)
 
+        self.anim = [] # For keeping track of each FuncAnimation separately
+
         self.succ_times = 0
         self.num_hit_time_limit = 0
         self.num_out_of_time = 0
@@ -125,6 +124,43 @@ class car_sim_env(object):
         self.reward_db = []
 
         self.lock = threading.Lock()
+
+    # Creates and shows parking environment
+    def create_parking_env(self):
+        self.parking_fig = plt.figure() # Parking env patch only
+        '''
+        self.ax2 adds parking environment only to plt.figure (self.parking_fig)
+        '''
+        print "Creating parking environment..."
+        self.ax2 = self.parking_fig.add_subplot(111, aspect='equal')
+        self.ax2.set_title('Parking Environment')
+        self.ax2.axis('off')
+        
+        self.env_wall_path = Path(self.wall_verts_closed, self.rect_codes)
+        self.env_car1_path = Path(self.car1_verts_closed, self.rect_codes)
+        self.env_car2_path = Path(self.car2_verts_closed, self.rect_codes)
+
+        self.env_wall_patch = mpl_patches.PathPatch(self.env_wall_path, edgecolor='black', facecolor='white', lw=5)
+        self.env_car1_patch = mpl_patches.PathPatch(self.env_car1_path, facecolor='black', lw=0)
+        self.env_car2_patch = mpl_patches.PathPatch(self.env_car2_path, facecolor='black', lw=0)
+ 
+        self.ax2.add_patch(self.env_wall_patch)
+        self.ax2.add_patch(self.env_car1_patch)
+        self.ax2.add_patch(self.env_car2_patch)
+
+    def captureStates(self):
+        parking_space = os.path.join(DATA_DIR, 'parking_space.png')
+        state = os.path.join(DATA_DIR, 'state.png')
+        if os.path.isdir(DATA_DIR):
+            if not os.path.isfile(parking_space):
+                self.parking_fig.savefig(parking_space)
+                print "Parking_space saved in: ", parking_space
+            if not os.path.isfile(state):
+                self.env_fig.savefig(state)
+            else:
+                self.env_fig.savefig(state)
+        else:
+            print "Data directory does not exist: Invalid."
 
     def get_terminal_pose(self):
         x_offset = 0.25
@@ -666,13 +702,9 @@ class car_sim_env(object):
 
         self.lock.release()
 
-
-
     def create_agent(self, agent_class, *args, **kwargs):
         agent = agent_class(self, *args, **kwargs)
         return agent
-
-
 
 
     def get_rect_verts(self, center, length, width, angle):
@@ -697,27 +729,26 @@ class car_sim_env(object):
         # self.agent_pose[0] = random.uniform(-3,3)
         # print '.........................................................................................'
         self.update_agent_animation()
+        self.captureStates()
+#        print self.anim[0].new_frame_seq()
         return [self.agent_patch, self.agent_head_patch, self.agent_center_patch]
 
     def animate_env(self, i):
-        # self.agent_pose[2] = np.pi / 50 * (i % 50) * 2
-        # self.agent_pose[0] = random.uniform(-3,3)
-        # print '.........................................................................................'
         pass
 
     def plt_show(self):
+        self.create_parking_env() # Creates and shows parking environment
+        self.captureStates()
+        plt.close(self.parking_fig)
+
         # print '...........................'
-        self.anim = animation.FuncAnimation(self.env_fig, self.animate_car,
-                                       init_func=None,
-                                       frames=1000,
-                                       interval=1,
-                                       # repeat= False,
-                                       blit=True)
-        '''
-        self.anim = animation.FuncAnimation(self.car_fig, self.animate_car,
-                                        init_func=None, frames=1000,
-                                        interval =1, blit=True)
-        '''
+        self.anim.append(animation.FuncAnimation(self.env_fig, self.animate_car,
+                                        init_func=None,
+                                        frames=1000,
+                                        interval=1,
+                                        blit=True))
+        #TODO: Make parking space display appear along with car agent figure
+        #self.anim.append(animation.FuncAnimation(self.parking_fig, self.animate_env))
         # print '...........................'
         plt.gca().invert_xaxis()
         plt.gca().invert_yaxis()
