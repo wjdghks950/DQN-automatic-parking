@@ -9,6 +9,8 @@ from collections import namedtuple
 import cPickle
 import threading
 
+from model.model import DQN
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -16,25 +18,6 @@ import torch.nn.functional as F
 import torchvision.transforms as T
 
 states = namedtuple('states', ('x', 'y', 'theta_heading', 's', 'theta_steering'))
-
-class DQN(nn.Module):
-    def __init__(self, n_states, n_actions):
-        super(DQN, self).__init__()
-        self.fc1 = nn.Linear(n_states, 64)
-#        self.bn1 = nn.BatchNorm2d(64)
-        self.fc2 = nn.Linear(64,128)
-#        self.bn2 = nn.BatchNorm2d(128)
-        self.fc3 = nn.Linear(128, n_actions)
-#        self.bn3 = nn.BatchNorm2d(n_actions)
-        self.relu = nn.ReLU()
-
-    def forward(self, x):
-        out = self.relu(self.fc1(x))
-        out = self.relu(self.fc2(out))
-        out = self.relu(self.fc3(out))
-        return out
-        #return out.view(out.size(0), -1)
-
 
 class LearningAgent(Agent):
     """An agent that learns to automatic parking"""
