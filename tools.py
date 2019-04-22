@@ -24,7 +24,7 @@ def get_line_coeffi(point1, point2):
 
 
 def two_rects_intersect(rect1_verts, rect2_verts):
-    tolerance = 1e-8
+    tolerance = 1e-5
     for line1_idx in range(4):
         for line2_idx in range(4):
             line1 = rect1_verts[line1_idx, :]
