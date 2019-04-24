@@ -53,7 +53,7 @@ class LearningAgent(Agent):
             self.epsilon = 0.0
 
         self.learning_rate = args.lrate
-
+        self.batch_size = args.batch
         self.gamma = args.discount
 
         self.state = None
@@ -73,6 +73,22 @@ class LearningAgent(Agent):
         print "device", self.device
         print "q net", self.policy_net
         print "target net", self.target_net
+
+    def load_dataset(self, path):
+        train_dataset = torchvision.datasets.ImageFolder(
+            root = path,
+            transform = T.toTensor()
+        )
+        data_loader = torch.utils.data.DataLoader(
+            train_dataset,
+            batch_size = self.batch_size,
+            num_workers = 0,
+            shuffle = False
+        )
+        return data_loader
+
+    def get_screen(self):
+        pass
 
     def update_epsilon(self):
         if self.epsilon >= self.epsilon_end:
