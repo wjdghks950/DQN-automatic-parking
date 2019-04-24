@@ -83,9 +83,9 @@ class car_sim_env(object):
         self.ax = self.env_fig.add_subplot(111, aspect='equal')
         self.ax.axis('off')
 
-        self.wall_patch = mpl_patches.PathPatch(self.wall_path, edgecolor='black', facecolor='white', lw=5)
-        self.car1_patch = mpl_patches.PathPatch(self.car1_path, facecolor='black', lw=0)
-        self.car2_patch = mpl_patches.PathPatch(self.car2_path, facecolor='black', lw=0)
+        self.wall_patch = mpl_patches.PathPatch(self.wall_path, edgecolor='blue', facecolor='white', lw=5)
+        self.car1_patch = mpl_patches.PathPatch(self.car1_path, facecolor='blue', lw=0)
+        self.car2_patch = mpl_patches.PathPatch(self.car2_path, facecolor='blue', lw=0)
         self.ax.add_patch(self.wall_patch)
         self.ax.add_patch(self.car1_patch)
         self.ax.add_patch(self.car2_patch)
@@ -105,7 +105,6 @@ class car_sim_env(object):
         self.set_agent_start_region()
         self.r2z = False
 
-        self.done = False
         self.t = 0
 
         self.init_agent() # Initialize agent parameters
@@ -114,6 +113,8 @@ class car_sim_env(object):
         self.ax.add_patch(self.agent_center_patch)
 
         self.anim = [] # For keeping track of each FuncAnimation separately
+        self.idx = 0 # index for state image frame
+        self.datafold_num = 1
 
         self.succ_times = 0
         self.num_hit_time_limit = 0
@@ -148,19 +149,54 @@ class car_sim_env(object):
         self.ax2.add_patch(self.env_car1_patch)
         self.ax2.add_patch(self.env_car2_patch)
 
+    def img2data(self, fig):
+        '''
+        Convert image to a 4D numpy array with RGBA channels and return it
+        '''
+        fig.canvas.draw() # draw the renderer
+        w, h = fig.canvas.get_width_height()
+        buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
+        buf.shape = (w, h, 4)
+
+        buf = np.roll(buf, 3, axis = 2)
+        with open('img2data.txt', 'w') as f:
+            print >> f, 'img2data:', buf, '\n', '--------------------'
+        return buf
+
     def captureStates(self):
+        # Saves each frame as an image file in: ./data/state#.png
         parking_space = os.path.join(DATA_DIR, 'parking_space.png')
-        state = os.path.join(DATA_DIR, 'state.png')
-        if os.path.isdir(DATA_DIR):
-            if not os.path.isfile(parking_space):
-                self.parking_fig.savefig(parking_space)
-                print "Parking_space saved in: ", parking_space
-            if not os.path.isfile(state):
-                self.env_fig.savefig(state)
+        # _ = self.img2data(self.env_fig)
+
+        try:
+            if os.path.isdir(DATA_DIR):
+                fold_dir_name = 'fold' + str(self.datafold_num)
+                state_name = 'state' + str(self.idx) + '.png'
+                fold_dir = os.path.join(DATA_DIR, fold_dir_name)
+                state = os.path.join(fold_dir, state_name)
+                self.idx += 1
+     
+                '''
+                if not os.path.isfile(parking_space):
+                    self.parking_fig.savefig(parking_space)
+                    print "Parking_space saved in: ", parking_space
+                '''
+                if os.path.isdir(fold_dir):
+                    if self.done:
+                        self.datafold_num += 1
+                        self.idx = 1
+                    if not os.path.isfile(state):
+                        self.env_fig.savefig(state)
+                    else:
+                        self.env_fig.savefig(state)
+                else:
+                    os.mkdir(fold_dir)
             else:
-                self.env_fig.savefig(state)
-        else:
-            print "Data directory does not exist: Invalid."
+                print "Data directory does not exist: Invalid."
+                print "Creating ./data directory..."
+                os.mkdir(DATA_DIR)
+        except OSError:
+            print "mkdir failed: Creating a new dir failed."
 
     def get_terminal_pose(self):
         x_offset = 0.25
@@ -682,9 +718,9 @@ class car_sim_env(object):
         head_pose = np.zeros(2)
         head_pose[0] = self.agent_pose[0] + delta_x
         head_pose[1] = self.agent_pose[1] + delta_y
-        self.agent_head_patch = plt.Circle(head_pose, 0.02, color='red')
+        self.agent_head_patch = plt.Circle(head_pose, 0.03, color='black')
         self.agent_center_patch = plt.Circle(self.agent_center, 0.02, color='brown')
-        self.agent_patch = plt.Polygon(self.agent_verts, facecolor='cyan', edgecolor='blue')
+        self.agent_patch = plt.Polygon(self.agent_verts, facecolor='red', edgecolor='red')
 
 
     # Update agent animation - the car agent is updated
