@@ -38,7 +38,7 @@ print "Learning rate: ", args.lrate
 print "Discount factor(gamma): ", args.discount
 
 class LearningAgent(Agent):
-    """An agent that learns to automatic parking"""
+    """An agent that learns to park automatically"""
 
     def __init__(self, env, test = False):
         super(LearningAgent, self).__init__(env)  # sets self.env = env, state = None
@@ -87,17 +87,10 @@ class LearningAgent(Agent):
         )
         return data_loader
 
-    def get_screen(self):
-        pass
-
     def update_epsilon(self):
         if self.epsilon >= self.epsilon_end:
             self.epsilon *= self.epsilon_decay
         print "Exploration rate: ", self.epsilon
-
-    def get_image(self, fpath):
-        pass
-        
 
     def optimize_model(self, state, action, reward):
         state = torch.Tensor(state, device=self.device)
