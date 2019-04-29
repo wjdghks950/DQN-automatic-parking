@@ -103,7 +103,6 @@ class LearningAgent(Agent):
 
         return state, next_state
 
-
     def update_epsilon(self):
         if self.epsilon >= self.epsilon_end:
             self.epsilon *= self.epsilon_decay
@@ -135,60 +134,6 @@ class LearningAgent(Agent):
         self.optimizer.step()
 
 
-        '''
-        self.Q_values = {}
-        self.state = None
-        self.Q_stage_one = {}
-        self.Q_stage_two = {}
-        self.Q_to_terminal_zero = {}
-        self.Q_to_terminal_one = {}
-        self.Q_to_terminal_two = {}
-        self.Q_to_terminal_three = {}
-
-        if 0 :
-            self.load_q_table()
-        elif 0 :
-            self.init_q_table()
-            ## not yet implementation
-
-    def load_q_table(self):
-        parent_path = os.path.dirname(os.path.realpath(__file__))
-        data_path = os.path.join(parent_path, 'q_table')
-        print 'restoring q tables from {}'.format(data_path)
-        with open(os.path.join(data_path, 'far_region.cpickle'), 'rb') as f:
-            self.Q_stage_one = cPickle.load(f)
-            print '    stage one q table length:',len(self.Q_stage_one), self.Q_stage_one
-        with open(os.path.join(data_path, 'near_region.cpickle'), 'rb') as f:
-            self.Q_stage_two = cPickle.load(f)
-            print '    stage two q table length:', len(self.Q_stage_two)
-        with open(os.path.join(data_path, 'bottom_left.cpickle'), 'rb') as f:
-            self.Q_to_terminal_zero = cPickle.load(f)
-            print '    bottom left q table length:', len(self.Q_to_terminal_zero)
-        with open(os.path.join(data_path, 'bottom_right.cpickle'), 'rb') as f:
-            self.Q_to_terminal_one = cPickle.load(f)
-            print '    bottom right q table length:', len(self.Q_to_terminal_one)
-        with open(os.path.join(data_path, 'top_right.cpickle'), 'rb') as f:
-            self.Q_to_terminal_two = cPickle.load(f)
-            print '    top right q table length:', len(self.Q_to_terminal_two)
-        with open(os.path.join(data_path, 'top_left.cpickle'), 'rb') as f:
-            self.Q_to_terminal_three = cPickle.load(f)
-            print '    top left q table length:', len(self.Q_to_terminal_three)
-        print 'restoring done...'
-
-    def init_q_table(self):
-        print "There is no loading file, making Q table...".format(trial)
-        init_q_value = {} ## ???????????
-    
-        q_table_file = os.path.join(data_path, '.cpickle')
-        with open(q_table_file, 'wb') as f:
-            cPickle.dump(init_q_value, f, protocol=cPickle.HIGHEST_PROTOCOL)
-    
-    def reset(self):
-        self.state = None
-        self.action = None
-        self.reward = None
-    '''
-
     def update(self):
         if self.state == None:
             agent_pose = self.env.sense()
@@ -218,7 +163,6 @@ class LearningAgent(Agent):
         #print '===================================='
         #print 'Current State: ', self.state
         '''
-
 
         step = self.env.get_steps()
         if self.env.enforce_deadline:
