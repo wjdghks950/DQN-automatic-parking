@@ -197,16 +197,6 @@ class car_sim_env(object):
         except OSError:
             print "mkdir failed: Creating a new dir failed."
 
-    def get_screen(self):
-        if os.isdir(DATA_DIR):
-            if os.isfile(os.path.join(DATA_DIR, self.state)) and os.isfile(os.path.join(DATA_DIR, self.next_state)):
-                state = Image.open(self.state)
-                next_state = Image.open(self.next_state)
-                state = torch.from_numpy(np.array(state))
-                next_state = torch.from_numpy(np.array(next_state))
-
-        return state, next_state
-
     def get_terminal_pose(self):
         x_offset = 0.25
         y_offset = 0.25
