@@ -9,6 +9,7 @@ from collections import namedtuple
 import cPickle
 import threading
 import argparse
+from PIL import Image
 
 from model.model import DQN
 
@@ -25,6 +26,8 @@ parser.add_argument('-ed', '--eps_decay', default=0.99, type=float, help='Epsilo
 parser.add_argument('-b', '--batch', default=32, type=int, help='Batch size')
 parser.add_argument('-o', '--observe', default=5, type=int, help='Observation frequency')
 parser.add_argument('-lr', '--lrate', default=0.01, type=float, help='Learning rate of DNN')
+parser.add_argument('-p', '--path', default='data', type=float, help='Data file path')
+
 
 args = parser.parse_args()
 
@@ -86,6 +89,20 @@ class LearningAgent(Agent):
             shuffle = False
         )
         return data_loader
+
+    # Retrieve screens saved by car_parking_env.py/captureStates and convert them to tensor
+    def get_screen(self):
+        if os.isdir(args.path):
+            if os.isfile(os.path.join(args.path, self.state)) and os.isfile(os.path.join(args.path, self.next_state)):
+                state = Image.open(self.state)
+                next_state = Image.open(self.next_state)
+                state = torch.from_numpy(np.array(state))
+                next_state = torch.from_numpy(np.array(next_state))
+                print('State as torch tensor:', state)
+                print('Next state as torch tensor:', next_state)
+
+        return state, next_state
+
 
     def update_epsilon(self):
         if self.epsilon >= self.epsilon_end:
