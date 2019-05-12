@@ -101,13 +101,11 @@ class LearningAgent(Agent):
                 try:
                     state_img = Image.open(state_path).convert('L') # Open as grayscale
                     state_img.thumbnail(downsample_size, Image.ANTIALIAS)
-                    state_img.save('resized_img', 'PNG')
-                    print('State: ', state_img)
-                    # Remove 4th channel - which is for transparency
+                    #print('State: ', state_img)
                     state = np.array(state_img)
-                    #state = state[:,:,:3]
                     state = torch.from_numpy(state)
-                    print('State as torch tensor:', state.shape)
+                    state1 = state
+                    state = state.unsqueeze(0) # Add channel dimension - (C, H, W)
                 except IOError:
                     print ("Could not open '%s'" % state_path)
 
