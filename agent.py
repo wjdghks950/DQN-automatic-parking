@@ -26,7 +26,7 @@ parser.add_argument('-ed', '--eps_decay', default=0.99, type=float, help='Epsilo
 parser.add_argument('-b', '--batch', default=32, type=int, help='Batch size')
 parser.add_argument('-o', '--observe', default=5, type=int, help='Observation frequency')
 parser.add_argument('-lr', '--lrate', default=0.01, type=float, help='Learning rate of DNN')
-parser.add_argument('-p', '--path', default='data', type=float, help='Data file path')
+parser.add_argument('-p', '--path', default='data', type=str, help='Data file path')
 
 
 args = parser.parse_args()
@@ -66,6 +66,8 @@ class LearningAgent(Agent):
             print "using cuda..."
         else :
             print "using cpu..."
+
+        self.state_path = 'state.png'
         
         self.policy_net = DQN(n_states=5, n_actions=12).to(self.device)
         self.target_net = DQN(n_states=5, n_actions=12).to(self.device)
@@ -92,16 +94,24 @@ class LearningAgent(Agent):
 
     # Retrieve screens saved by car_parking_env.py/captureStates and convert them to tensor
     def get_screen(self):
-        if os.isdir(args.path):
-            if os.isfile(os.path.join(args.path, self.state)) and os.isfile(os.path.join(args.path, self.next_state)):
-                state = Image.open(self.state)
-                next_state = Image.open(self.next_state)
-                state = torch.from_numpy(np.array(state))
-                next_state = torch.from_numpy(np.array(next_state))
-                print('State as torch tensor:', state)
-                print('Next state as torch tensor:', next_state)
+        downsample_size = 80, 60
+        if os.path.isdir(args.path):
+            state_path = os.path.join(args.path, self.state_path)
+            if os.path.isfile(state_path):
+                try:
+                    state_img = Image.open(state_path).convert('L') # Open as grayscale
+                    state_img.thumbnail(downsample_size, Image.ANTIALIAS)
+                    state_img.save('resized_img', 'PNG')
+                    print('State: ', state_img)
+                    # Remove 4th channel - which is for transparency
+                    state = np.array(state_img)
+                    #state = state[:,:,:3]
+                    state = torch.from_numpy(state)
+                    print('State as torch tensor:', state.shape)
+                except IOError:
+                    print ("Could not open '%s'" % state_path)
 
-        return state, next_state
+        return state
 
     def update_epsilon(self):
         if self.epsilon >= self.epsilon_end:
@@ -249,7 +259,6 @@ def run(restore):
     agt = env.create_agent(LearningAgent, test=False)
     env.set_agent(agt, enforce_deadline=False)
 
-
     train_thread = threading.Thread(name="train", target=train, args=(env, agt, restore))
     train_thread.daemon = True
     train_thread.start()
@@ -309,6 +318,7 @@ def train(env, agt, restore):
         while True:
             try:
                 env.step()
+                agt.get_screen()
             except KeyboardInterrupt:
                 quit = True
             finally:
