@@ -14,12 +14,12 @@ from datetime import datetime
 import time
 import re
 import os
-from PIL import Image
 
 DATA_DIR='data'
 
 class car_sim_env(object):
-    valid_actions = ['accel','decel','left_D','right_D','left_R','right_R', 'keep', 'handle_left', 'handle_right', 'brake', 'brake_handle_left', 'brake_handle_right']
+    valid_actions = ['accel','decel','left_D','right_D','left_R','right_R', 'keep', 'handle_left', 'handle_right'] 
+    #, 'brake', 'brake_handle_left', 'brake_handle_right']
     step_length = 0.1
     acceleration = 0.05
     r_gear = 1 # when r_gear == -1, reverse driving
@@ -33,10 +33,10 @@ class car_sim_env(object):
                           valid_actions[5]: np.array([-acceleration, delta_angle]),\
                           valid_actions[6]: np.array([0.0, 0.0]),\
                           valid_actions[7]: np.array([0.0, delta_angle]),\
-                          valid_actions[8]: np.array([0.0, -delta_angle]),\
-                          valid_actions[9]: np.array([0.0, 0.0]),\
-                          valid_actions[10]: np.array([0.0, delta_angle]),\
-                          valid_actions[11]: np.array([0.0, -delta_angle])
+                          valid_actions[8]: np.array([0.0, -delta_angle])
+#                          valid_actions[9]: np.array([0.0, 0.0]),\
+#                          valid_actions[10]: np.array([0.0, delta_angle]),\
+#                          valid_actions[11]: np.array([0.0, -delta_angle])
                           }
     def __init__(self):
         self.done = False
@@ -57,8 +57,8 @@ class car_sim_env(object):
         self.forward_turning_angle = 0.202
         self.backward_turning_angle = 0.262
         
-        self.wall_edge_length = 8.5
-        self.wall_center = np.array([0, -1.75])
+        self.wall_edge_length = 10.5
+        self.wall_center = np.array([0, -2.75])
 
         self.wall_verts = self.get_rect_verts(self.wall_center, 15, self.wall_edge_length, angle=0.0)
         # self.wall_verts = self.get_rect_verts(self.wall_center, 3.6, 2.4, angle=0.0)
@@ -197,6 +197,43 @@ class car_sim_env(object):
         except OSError:
             print "mkdir failed: Creating a new dir failed."
 
+
+    '''
+    def captureStates(self):
+        # Saves each frame as an image file in: ./data/state#.png
+        parking_space = os.path.join(DATA_DIR, 'parking_space.png')
+        # _ = self.img2data(self.env_fig)
+
+        try:
+            if os.path.isdir(DATA_DIR):
+                fold_dir_name = 'fold' + str(self.datafold_num)
+                state_name = 'state' + str(self.idx) + '.png'
+                fold_dir = os.path.join(DATA_DIR, fold_dir_name)
+                state = os.path.join(fold_dir, state_name)
+                self.idx += 1
+     
+                
+                if not os.path.isfile(parking_space):
+                    self.parking_fig.savefig(parking_space)
+                    print "Parking_space saved in: ", parking_space
+                
+                if os.path.isdir(fold_dir):
+                    if self.done:
+                        self.datafold_num += 1
+                        self.idx = 1
+                    if not os.path.isfile(state):
+                        self.env_fig.savefig(state)
+                    else:
+                        self.env_fig.savefig(state)
+                else:
+                    os.mkdir(fold_dir)
+            else:
+                print "Data directory does not exist: Invalid."
+                print "Creating ./data directory..."
+                os.mkdir(DATA_DIR)
+        except OSError:
+            print "mkdir failed: Creating a new dir failed."
+    '''
     def get_terminal_pose(self):
         x_offset = 0.25
         y_offset = 0.25
@@ -333,46 +370,43 @@ class car_sim_env(object):
         #print("act!!!")
         agent_pose = self.sense()
         cur_pose = agent_pose[:2]
-        prev_pose = np.array([agent.state.x, agent.state.y])
+        prev_pose = np.array([agent.state[1][0], agent.state[1][1]]) # x,y
 #        agent_pose[2] = 0 #??? why?
-        reward -= 1.00 * self.t
+        reward -= 1.00 #* self.t
 
         if self.collide_walls():
-            print '========================================================================================'
-            print 'agent hit wall'
             self.hit_wall_times += 1
             self.done = True
             reward = -100.0
+#            print '========================================================================================'
+#            print 'agent hit wall'
 
         elif self.collide_fixed_cars():
-            print '========================================================================================'
-            print 'agent hit cars'
-
             self.hit_car_times += 1
             self.done = True
             reward = -100.0 
+#            print '========================================================================================'
+#            print 'agent hit cars'
 
         elif self.time_over():
-            print '========================================================================================'
-            print 'Time over.'
             self.done = True
             reward = -10.0
+#            print '========================================================================================'
+#            print 'Time over.'
 
         elif self.reach2zone(agent_pose):
-            print '========================================================================================'
-            print 'Reached 2nd Zone'
             reward = 50.0
             #time.sleep(5)
+#            print '========================================================================================'
+#            print 'Reached 2nd Zone'
 
         elif self.reach_terminal(agent_pose):
             reward = 10000.0
             self.done = True
             self.succ_times += 1
-            print '-----------------------------------------------------------------------------------------'
-            print '-----------------------------------------------------------------------------------------'
-            print '-----------------------------------------------------------------------------------------'
-            print '-----------------------------------------------------------------------------------------'
-            print "Environment.act(): Agent has reached destination!"
+#            print '-----------------------------------------------------------------------------------------'
+#            print '-----------------------------------------------------------------------------------------'
+#            print "Environment.act(): Agent has reached destination!"
 
         #elif (agent.state, action) in self.reward_db:
         #    reward = 1.0
@@ -411,8 +445,8 @@ class car_sim_env(object):
         #print("pose : " , pose)
         #print(self.terminal_boundary)
         if pose[0] > self.terminal_boundary[0] and pose[0] < self.terminal_boundary[1] \
-                and pose[1] > self.terminal_boundary[2] and pose[1] < self.terminal_boundary[3] \
-                    and (pose[2] == 0 or pose[2] == 8):
+                and pose[1] > self.terminal_boundary[2] and pose[1] < self.terminal_boundary[3] :
+                    #and (pose[2] == 0 or pose[2] == 8):
             return True
         return False
 
@@ -459,31 +493,35 @@ class car_sim_env(object):
 
     def agent_step(self, cur_pose, action):
         # cur_pose:np.array([x,y,theta]) -> car_state:np.array([x,y,theta_heading,cur_speed,theta_steering])
-        brake_actions = re.compile("^brake.*$")
-        if brake_actions.match(action):
-            cur_pose[3] = 0.0
+#        brake_actions = re.compile("^brake.*$")
+#        if brake_actions.match(action):
+#            cur_pose[3] = 0.0
 
         new_pose = np.zeros(5)
         theta_heading = cur_pose[2]
-        acceleration = self.valid_actions_dict[action][0]
+#        acceleration = self.valid_actions_dict[action][0]
+        speed = self.valid_actions_dict[action][0]
         delta_theta_steering = self.valid_actions_dict[action][1] # amount of steering wheel turn
         theta_steering = cur_pose[4] # steering angle
-        self.cur_velocity = abs(cur_pose[3]) # current velocity
+#        self.cur_velocity = abs(cur_pose[3]) # current velocity
 
-        if acceleration >= 0:
-            self.r_gear = 1
-        else:
-            self.r_gear = -1
+#        if acceleration >= 0:
+#            self.r_gear = 1
+#        else:
+#            self.r_gear = -1
+#
+#        speed_sign = self.r_gear ##
 
-        speed_sign = self.r_gear ##
-
-        delta_x = self.cur_velocity * np.cos(theta_heading)
-        delta_y = self.cur_velocity * np.sin(theta_heading)
-        v = self.cur_velocity
+#        delta_x = self.cur_velocity * np.cos(theta_heading)
+#        delta_y = self.cur_velocity * np.sin(theta_heading)
+#        v = self.cur_velocity
+        delta_x = speed * np.cos(theta_heading)
+        delta_y = speed * np.sin(theta_heading)
+        v = abs(speed)
         b = self.forward_radius * 2 # wheelbase
 
-        new_pose[0] = cur_pose[0] + delta_x * speed_sign
-        new_pose[1] = cur_pose[1] + delta_y * speed_sign
+        new_pose[0] = cur_pose[0] + delta_x
+        new_pose[1] = cur_pose[1] + delta_y
 
         new_theta_steering = theta_steering + delta_theta_steering
         if new_theta_steering >= self.max_steer_angle:
@@ -494,7 +532,7 @@ class car_sim_env(object):
         new_pose[4] = new_theta_steering
         new_pose[2] = cur_pose[2] + (v/b) * np.tan(new_pose[4])
         new_pose[2] = new_pose[2] % (2 * np.pi)
-        new_pose[3] = cur_pose[3] + acceleration
+#        new_pose[3] = cur_pose[3] + acceleration
 
         # If we change direction (e.g. drive to reverse), v = 0
 
@@ -613,7 +651,7 @@ class car_sim_env(object):
 
         if self.t > 5:
             if abs(self.agent_pose[0] - self.starting_pose[0]) < 0.05:
-                print "=======Timeover========"
+#                print "=======Timeover========"
                 timeover = True
         else:
             timeover = False
@@ -738,9 +776,9 @@ class car_sim_env(object):
 
         self.lock.release()
 
-    def create_agent(self, agent_class, *args, **kwargs):
-        agent = agent_class(self, *args, **kwargs)
-        return agent
+#    def create_agent(self, agent_class, *args, **kwargs):
+#        agent = agent_class(self, *args, **kwargs)
+#        return agent
 
 
     def get_rect_verts(self, center, length, width, angle):
@@ -802,7 +840,7 @@ class car_sim_env(object):
         plt.show()
 
     def set_action(self, action):
-        time.sleep(0.1)
+        #time.sleep(0.1)
         cur_pose = self.agent_pose
         self.agent_step(cur_pose, action)
 
@@ -841,8 +879,7 @@ class car_sim_env(object):
 class Agent(object):
     """Base class for all agents."""
 
-    def __init__(self, env):
-        self.env = env
+    def __init__(self):
         self.state = None
 
 
