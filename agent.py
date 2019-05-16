@@ -13,7 +13,7 @@ from PIL import Image
 
 from model.model import DQN
 from tools import print_log
-from tools import ReplayMemory
+from tools import ReplayMemory, Transition, state, state_tuple
 
 import torch
 import torch.nn as nn
@@ -34,11 +34,6 @@ parser.add_argument('--SAVE_PATH', default='./log/', type=str, help='')
 parser.add_argument('--MEMORY_SIZE', default=10000, type=int, help='ReplayMemory capacity')
 
 args = parser.parse_args()
-
-
-Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
-state = namedtuple('state', ('state_img', 'state_tuple'))
-state_tuple = namedtuple('state_tuple', ('x', 'y', 'theta_heading', 's', 'theta_steering'))
 
 filename = 'log_{seed}_ymd{y}{m}{d}_hm{h}{min}_model{model}'.format(seed=0, y=0 , m=0, d=0, h=0, min=0, model='rl_parking')
 log = open(os.path.join(args.SAVE_PATH, 'txt'+filename+'.txt'), 'w')
@@ -85,11 +80,10 @@ class LearningAgent(Agent):
             print "using cpu..."
 
         self.memory = ReplayMemory(args.MEMORY_SIZE)
+        self.time_backward = 4
         
         self.policy_net = DQN(vec_size=5, n_actions=9).to(self.device)
         self.target_net = DQN(vec_size=5, n_actions=9).to(self.device)
-#        self.policy_net = DQN(vec_size=5, n_actions=9).cuda()
-#        self.target_net = DQN(vec_size=5, n_actions=9).cuda()
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
         
@@ -128,7 +122,7 @@ class LearningAgent(Agent):
                     state = torch.from_numpy(state)
 #                    state1 = state
 #                    state = state.unsqueeze(0) # Add channel dimension - (C, H, W)
-                    print "\timage =>", state
+#                    print "\timage =>", state
                     state = state.type('torch.FloatTensor')
                     state = state.view(1,60,80).to(self.device)
 #                    print "\timage_shape =>", state.size()
@@ -145,8 +139,8 @@ class LearningAgent(Agent):
     def optimize_model(self, memory):
         if len(memory.memory) < args.BATCH_SIZE :
             return
-        transitions = memory.sample(args.BATCH_SIZE)
-#        print "transition ", transitions.size()
+        transitions = memory.sample(args.BATCH_SIZE, self.time_backward)
+        print "transition sample: ", transitions[3]
         batch = Transition(*zip(*transitions))
 #        print "\ttransition \t", batch
 
@@ -164,7 +158,7 @@ class LearningAgent(Agent):
         r_batch = torch.cat(batch.reward)
 
 #        print "a_batch ", a_batch.size()
-       
+
         Q = self.policy_net(s_img_batch, s_tuple_batch)
 #        print "QQQQQ ", Q.data.size()
         Q = Q.gather(1, a_batch)
@@ -185,9 +179,7 @@ class LearningAgent(Agent):
 #        Q = Q.index_select(dim=0, index=action)
 #        print "Q_ind", Q
         V_next = torch.zeros(args.BATCH_SIZE, device=self.device)
-        V_next[non_final_mask] = self.target_net(
-                non_final_next_s_img, non_final_next_s_tuple
-                ).max(1)[0].detach()
+        V_next[non_final_mask] = self.target_net(non_final_next_s_img, non_final_next_s_tuple).max(1)[0].detach()
 
         expected_Q = (V_next * self.gamma) + r_batch
 

@@ -186,43 +186,6 @@ class car_sim_env(object):
         except OSError:
             print "mkdir failed: Creating a new dir failed."
 
-
-    '''
-    def captureStates(self):
-        # Saves each frame as an image file in: ./data/state#.png
-        parking_space = os.path.join(DATA_DIR, 'parking_space.png')
-        # _ = self.img2data(self.env_fig)
-
-        try:
-            if os.path.isdir(DATA_DIR):
-                fold_dir_name = 'fold' + str(self.datafold_num)
-                state_name = 'state' + str(self.idx) + '.png'
-                fold_dir = os.path.join(DATA_DIR, fold_dir_name)
-                state = os.path.join(fold_dir, state_name)
-                self.idx += 1
-     
-                
-                if not os.path.isfile(parking_space):
-                    self.parking_fig.savefig(parking_space)
-                    print "Parking_space saved in: ", parking_space
-                
-                if os.path.isdir(fold_dir):
-                    if self.done:
-                        self.datafold_num += 1
-                        self.idx = 1
-                    if not os.path.isfile(state):
-                        self.env_fig.savefig(state)
-                    else:
-                        self.env_fig.savefig(state)
-                else:
-                    os.mkdir(fold_dir)
-            else:
-                print "Data directory does not exist: Invalid."
-                print "Creating ./data directory..."
-                os.mkdir(DATA_DIR)
-        except OSError:
-            print "mkdir failed: Creating a new dir failed."
-    '''
     def get_terminal_pose(self):
         x_offset = 0.25
         y_offset = 0.25
