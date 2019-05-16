@@ -166,8 +166,8 @@ class car_sim_env(object):
 
     def captureStates(self):
         '''
-        Saves each frame as an image file in: ./data/state.png and ./data/next_state.png
-        Overwrites both files as new frame is captured
+        Saves each frame as an image file in: ./data/state.png
+        Overwrites the file as new frame is captured
         '''
         parking_space = os.path.join(DATA_DIR, 'parking_space.png')
         # _ = self.img2data(self.env_fig)
@@ -175,19 +175,8 @@ class car_sim_env(object):
         try:
             if os.path.isdir(DATA_DIR):
                 self.state = os.path.join(DATA_DIR, 'state.png')
-                self.next_state = os.path.join(DATA_DIR, 'next_state.png')
-                '''
-                if not os.path.isfile(parking_space):
-                    self.parking_fig.savefig(parking_space)
-                    print "Parking_space saved in: ", parking_space
-                '''
-                if os.path.isfile(self.state) and not os.path.isfile(self.next_state):
-                    self.env_fig.savefig(self.next_state)
-                elif not os.path.isfile(self.state):
-                    self.env_fig.savefig(self.state)
-                elif os.path.isfile(self.state) and os.path.isfile(self.next_state):
-                    os.rename(self.next_state, self.state)
-                    self.env_fig.savefig(self.next_state)
+
+                self.env_fig.savefig(self.state)
 
             else:
                 print "Data directory does not exist: Invalid."
