@@ -5,6 +5,7 @@ from collections import namedtuple
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 state = namedtuple('state', ('state_img', 'state_tuple'))
+
 class ReplayMemory(object):
     def __init__(self, capacity):
         self.capacity = capacity
@@ -18,10 +19,17 @@ class ReplayMemory(object):
         self.position = (self.position + 1) % self.capacity
 
     def sample(self, batch_size, time_step=None):
-        sample_t = random.sample(self.memory, batch_size) # Retrieve (idx, item) tuple from memory
-#        for idx, sample in enumerate(sample_t):
-#            for j in range(1, time_step+1):
-#                sample_t[0][1] = torch.cat(sample_t[0][1], self.memory[idx][0][1]), dim=0)
+        sample_t = random.sample(list(enumerate(self.memory)), batch_size) # Retrieve (t, item) tuple from memory
+        for t, sample in sample_t:
+            for j in range(1, timestep+1):
+                duplicate = t - j
+                if duplicate < 0:
+                    # if t < time_step, then fill the missing pieces with 0th state img
+                    sample_t[0][0] = torch.cat((sample_t[0][0], self.memory[0][0][0]), dim=0)
+                    sample_t[2][0] = torch.cat((sample_t[2][0], self.memory[0][2][0]), dim=0)
+                else: # t >= time_step
+                    sample_t[0][0] = torch.cat((sample_t[0][0], self.memory[t-j][0][0]), dim=0) #state -> state_img
+                    sample_t[2][0] = torch.cat((sample_t[2][0], self.memory[t-j][2][0]), dim=0) #next_state -> state_img
         return sample_t
 
 
