@@ -5,6 +5,7 @@ from collections import namedtuple
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 state = namedtuple('state', ('state_img', 'state_tuple'))
+state_tuple = namedtuple('state_tuple', ('x', 'y', 'theta_heading', 's', 'theta_steering'))
 
 class ReplayMemory(object):
     def __init__(self, capacity):
@@ -19,19 +20,38 @@ class ReplayMemory(object):
         self.position = (self.position + 1) % self.capacity
 
     def sample(self, batch_size, time_step=None):
+        sample_list = []
         sample_t = random.sample(list(enumerate(self.memory)), batch_size) # Retrieve (t, item) tuple from memory
-        for t, sample in sample_t:
-            for j in range(1, timestep+1):
+        for idx, sample in enumerate(sample_t):
+            '''
+            Each sample is returned in the form: <idx, (t, Transition_obj)>
+            '''
+            t = sample_t[idx][0]
+            print('t: ', t)
+            print('sample_t[idx][1][0] = (state): ', sample_t[idx][1][0])
+            s = list(sample_t[idx][1]) #convert 'Transition' namedtuple into list for 'state' assignment operation
+
+            s[0] = list(s[0]) #convert 'state' namedtuple into list for torch.cat assignment operation
+            s[2] = list(s[2])
+
+            for j in range(1, time_step+1):
                 duplicate = t - j
                 if duplicate < 0:
                     # if t < time_step, then fill the missing pieces with 0th state img
-                    sample_t[0][0] = torch.cat((sample_t[0][0], self.memory[0][0][0]), dim=0)
-                    sample_t[2][0] = torch.cat((sample_t[2][0], self.memory[0][2][0]), dim=0)
+                    s[0][0] = torch.cat((s[0][0], self.memory[0][0][0]), dim=0)
+                    s[2][0] = torch.cat((s[2][0], self.memory[0][2][0]), dim=0)
                 else: # t >= time_step
-                    sample_t[0][0] = torch.cat((sample_t[0][0], self.memory[t-j][0][0]), dim=0) #state -> state_img
-                    sample_t[2][0] = torch.cat((sample_t[2][0], self.memory[t-j][2][0]), dim=0) #next_state -> state_img
-        return sample_t
+                    s[0][0] = torch.cat((s[0][0], self.memory[t-j][0][0]), dim=0) #state -> state_img
+                    s[2][0] = torch.cat((s[2][0], self.memory[t-j][2][0]), dim=0) #next_state -> state_img
 
+            s[0] = tuple(s[0])
+            s[2] = tuple(s[2])
+            s = tuple(s)
+
+            sample_t[idx] = (t, Transition(s[0], sample_t[idx][1][1], s[2], sample_t[idx][1][3]))
+            sample_list.append(sample_t[idx][1])
+
+        return sample_list
 
 def print_log(print_string, log):
     print("{}".format(print_string))
