@@ -1,11 +1,34 @@
-# -----------------------------------
-# utility functions to check if two rotated rectangles intersect
-# Author: Tao Chen
-# Date: 2016.10.28
-# -----------------------------------
 import numpy as np
+import torch
+import random
+from collections import namedtuple
+
+Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
+state = namedtuple('state', ('state_img', 'state_tuple'))
+class ReplayMemory(object):
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.memory = []
+        self.position = 0 
+
+    def push(self, *args):
+        if len(self.memory) < self.capacity:
+            self.memory.append(None)
+        self.memory[self.position] = Transition(*args)
+        self.position = (self.position + 1) % self.capacity
+
+    def sample(self, batch_size, time_step=None):
+        sample_t = random.sample(self.memory, batch_size) # Retrieve (idx, item) tuple from memory
+#        for idx, sample in enumerate(sample_t):
+#            for j in range(1, time_step+1):
+#                sample_t[0][1] = torch.cat(sample_t[0][1], self.memory[idx][0][1]), dim=0)
+        return sample_t
 
 
+def print_log(print_string, log):
+    print("{}".format(print_string))
+    log.write('{}\n'.format(print_string))
+    log.flush()
 
 def get_line_coeffi(point1, point2):
     if point1[0] == point2[0]:
