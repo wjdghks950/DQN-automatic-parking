@@ -1,12 +1,18 @@
+# -----------------------------------
+# utility functions to check if two rotated rectangles intersect
+# Author: Tao Chen
+# Date: 2016.10.28
+# -----------------------------------
 import numpy as np
+
 import torch
+#import torch.nn as nn
+#import torch.nn.functional as F
 import random
 from collections import namedtuple
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 state = namedtuple('state', ('state_img', 'state_tuple'))
-state_tuple = namedtuple('state_tuple', ('x', 'y', 'theta_heading', 's', 'theta_steering'))
-
 class ReplayMemory(object):
     def __init__(self, capacity):
         self.capacity = capacity
@@ -20,12 +26,17 @@ class ReplayMemory(object):
         self.position = (self.position + 1) % self.capacity
 
     def sample(self, batch_size, time_step=None):
+        sample_t = random.sample(self.memory, batch_size) # Retrieve (idx, item) tuple from memory
+#        for idx, sample in enumerate(sample_t):
+#            for j in range(1, time_step+1):
+#                sample_t[0][1] = torch.cat(sample_t[0][1], self.memory[idx][0][1]), dim=0)
+
+    '''
+    def sample(self, batch_size, time_step=None):
         sample_list = []
         sample_t = random.sample(list(enumerate(self.memory)), batch_size) # Retrieve (t, item) tuple from memory
         for idx, sample in enumerate(sample_t):
-            '''
-            Each sample is returned in the form: <idx, (t, Transition_obj)>
-            '''
+            # Each sample is returned in the form: <idx, (t, Transition_obj)>
             t = sample_t[idx][0]
             print('t: ', t)
             print('sample_t[idx][1][0] = (state): ', sample_t[idx][1][0])
@@ -52,6 +63,10 @@ class ReplayMemory(object):
             sample_list.append(sample_t[idx][1])
 
         return sample_list
+    '''
+        
+        return sample_t
+
 
 def print_log(print_string, log):
     print("{}".format(print_string))
