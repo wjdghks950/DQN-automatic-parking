@@ -14,6 +14,10 @@ from datetime import datetime
 import time
 import re
 import os
+from PIL import Image
+import torch
+import torchvision
+
 
 DATA_DIR='data'
 
@@ -48,8 +52,8 @@ class car_sim_env(object):
                            Path.LINETO,
                            Path.CLOSEPOLY]
         # self.wall_verts = np.array([[-3.53, 4.0], [4.469, 4], [4.469, -4], [-3.53, -4], [-3.53, 4.0]])
-        self.car_length = 4.855
-        self.car_width = 1.985
+        self.car_length = 4.800
+        self.car_width = 1.830
         self.car_diagonal_length = math.sqrt(self.car_width ** 2 + self.car_length ** 2)
         self.rear_wheel_center_to_car_center = 0.2
         self.forward_radius = 0.59  # the radius of circle that the car's center goes through
@@ -65,12 +69,12 @@ class car_sim_env(object):
         self.wall_verts_closed = self.close_rect(self.wall_verts)
 
 
-        self.car1_center = np.array([-4.5, 0.0])
-        self.car1_verts = self.get_rect_verts(self.car1_center, 6, 5, angle=0.0)
+        self.car1_center = np.array([-4.65, 0.0])
+        self.car1_verts = self.get_rect_verts(self.car1_center, 5.7, 5, angle=0.0)
         self.car1_verts_closed = self.close_rect(self.car1_verts)
 
-        self.car2_center = np.array([4.5, 0.0])
-        self.car2_verts = self.get_rect_verts(self.car2_center, 6, 5, angle=0.0)
+        self.car2_center = np.array([4.65, 0.0])
+        self.car2_verts = self.get_rect_verts(self.car2_center, 5.7, 5, angle=0.0)
         self.car2_verts_closed = self.close_rect(self.car2_verts)
 
         self.wall_path = Path(self.wall_verts_closed, self.rect_codes)
@@ -121,6 +125,7 @@ class car_sim_env(object):
         self.num_hit_time_limit = 0
         self.num_out_of_time = 0
         self.hit_wall_times = 0
+        self.time_over_times = 0
         self.hit_car_times = 0
         self.hard_time_limit = 300  # even if enforce_deadline is False, end trial when deadline reaches this value (to avoid deadlocks)
         self.reward_db = []
@@ -160,31 +165,55 @@ class car_sim_env(object):
         buf.shape = (w, h, 4)
 
         buf = np.roll(buf, 3, axis = 2)
-        with open('img2data.txt', 'w') as f:
-            print >> f, 'img2data:', buf, '\n', '--------------------'
+        #with open('img2data.txt', 'w') as f:
+        #    print >> f, 'img2data:', buf, '\n', '--------------------'
         return buf
-
+    
     def captureStates(self):
-        '''
-        Saves each frame as an image file in: ./data/state.png
-        Overwrites the file as new frame is captured
-        '''
-        parking_space = os.path.join(DATA_DIR, 'parking_space.png')
-        # _ = self.img2data(self.env_fig)
-
-        try:
-            if os.path.isdir(DATA_DIR):
+        if False :
+            try:
+                if not os.path.isdir(DATA_DIR) :
+                    print "Data directory does not exist: Invalid."
+                    print "Creating ./data directory..."
+                    os.mkdir(DATA_DIR)
+            
                 self.state = os.path.join(DATA_DIR, 'state.png')
-
+                #self.next_state = os.path.join(DATA_DIR, 'next_state.png')
                 self.env_fig.savefig(self.state)
+        
+            except OSError:
+                print "mkdir failed: Creating a new dir failed."
 
-            else:
-                print "Data directory does not exist: Invalid."
-                print "Creating ./data directory..."
-                os.mkdir(DATA_DIR)
+        #self.lock.acquire()
+        
+        downsample_size = 80, 60
+        ####
+        fig = self.env_fig
+        fig.canvas.draw() # draw the renderer
+        w, h = fig.canvas.get_width_height()
+        buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
+        buf.shape = (w, h, 4)
 
-        except OSError:
-            print "mkdir failed: Creating a new dir failed."
+        buf = np.roll(buf, 3, axis = 2)
+        #with open('img2data.txt', 'w') as f:
+        #    print >> f, 'img2data:', buf, '\n', '--------------------'
+        img = buf
+        ####
+        #img = self.img2data(self.env_fig)
+        w, h, d = img.shape
+        img = Image.frombytes('L', (w, h), img.tostring() )
+        
+        #img = img.convert('L') # convert as grayscale
+        img.thumbnail(downsample_size, Image.ANTIALIAS)
+        img = np.array(img)
+        img = torch.from_numpy(img)
+        img = img.type('torch.FloatTensor')
+        img = img/255.
+        img = img.view(1, 60, 80)
+        print "\timg.size", img.size()
+        self.state_img = img
+        #self.lock.release()
+
 
     def get_terminal_pose(self):
         x_offset = 0.25
@@ -240,7 +269,6 @@ class car_sim_env(object):
         self.stage_one_terminal_boundary[3] =-0.85
 
 
-
     def clear_count(self):
         self.succ_times = 0
         self.hit_wall_times = 0
@@ -251,12 +279,13 @@ class car_sim_env(object):
     def step(self):
         # Update agents
         # Update agents
-        self.agent.update()
+        #self.agent.update()
 
         if self.done:
             return
 
-        if self.agent is not None:
+        #if self.agent is not None:
+        if True :
             if self.t >= self.hard_time_limit:
                 #print "Environment.step(): Primary agent hit hard time limit! Trial aborted."
                 self.done = True
@@ -270,6 +299,13 @@ class car_sim_env(object):
 
 
             self.t += 1
+    
+    def get_screen(self) :
+        #self.lock.acquire()
+        img = self.state_img.clone()
+        #self.lock.release()
+        return img
+
 
     def sense(self):
         eagent_pose = self.agent_pose.copy()  # [x, y, thetai]
@@ -341,6 +377,7 @@ class car_sim_env(object):
 #            print 'agent hit cars'
 
         elif self.time_over():
+            self.time_over_times += 1
             self.done = True
             reward = -10.0
 #            print '========================================================================================'
@@ -555,17 +592,17 @@ class car_sim_env(object):
         
         car1_collision = False
         car2_collision = False
-        if agent_center_to_car1_center > self.car_diagonal_length:
+        #if agent_center_to_car1_center > self.car_diagonal_length:
             # in this case, agent is not possible to collide with car1
-            car1_collision = False
-        else:
-            car1_collision = tools.two_rects_intersect(self.agent_verts, self.car1_verts)
+         #   car1_collision = False
+        #else:
+        car1_collision = tools.two_rects_intersect(self.agent_verts, self.car1_verts)
 
-        if not car1_collision:
-            if agent_center_to_car2_center > self.car_diagonal_length:
-                car2_collision = False
-            else:
-                car2_collision = tools.two_rects_intersect(self.agent_verts, self.car2_verts)
+       # if not car1_collision:
+        #    if agent_center_to_car2_center > self.car_diagonal_length:
+        #        car2_collision = False
+         #   else:
+        car2_collision = tools.two_rects_intersect(self.agent_verts, self.car2_verts)
         self.lock.release()
         if car1_collision or car2_collision:
             return True
@@ -601,7 +638,7 @@ class car_sim_env(object):
         timeover = False
         #print "Check Timeover..."
 
-        if self.t > 5:
+        if self.t > 30:
             if abs(self.agent_pose[0] - self.starting_pose[0]) < 0.05:
 #                print "=======Timeover========"
                 timeover = True
@@ -672,7 +709,7 @@ class car_sim_env(object):
             x = random.uniform(self.agent_start_region[0], self.agent_start_region[1])
             y = random.uniform(self.agent_start_region[2], self.agent_start_region[3])
             '''
-            x = -4.0
+            x = -5.25
             y = -4.25
             #print('start_x:', x, 'start_y:', y)
             theta = 0
@@ -694,7 +731,7 @@ class car_sim_env(object):
 
 
     def set_agent(self, agent, enforce_deadline=False):
-        self.agent = agent
+        #self.agent = agent
         self.enforce_deadline = enforce_deadline
 
 
@@ -713,7 +750,7 @@ class car_sim_env(object):
 
 
     # Update agent animation - the car agent is updated
-    def update_agent_animation(self):
+    def update_screen(self):
         self.lock.acquire()
         self.agent_patch.set_xy(self.agent_verts)
 
@@ -725,22 +762,61 @@ class car_sim_env(object):
         head_pose[1] = self.agent_center[1] + delta_y
         self.agent_head_patch.center = head_pose
         self.agent_center_patch.center = self.agent_center
+        
+        self.ax.add_patch(self.agent_patch)
+        self.ax.add_patch(self.agent_head_patch)
+        self.ax.add_patch(self.agent_center_patch)
+
+        ####
+        downsample_size = 60, 80
+        self.env_fig.canvas.draw()
+        _img = np.array(self.env_fig.canvas.renderer._renderer)
+        #print "\timg size0", _img.shape
+        _img = Image.fromarray(_img)
+        #print "\timg size1", _img.size
+        _img = torchvision.transforms.Grayscale()(_img)
+        #print "\timg size2", _img.size
+        _img = torchvision.transforms.Resize(downsample_size, interpolation=Image.BILINEAR)(_img)
+        #_img.save("./data/_tmp.png")
+        #print "\timg size3", _img.size
+        img = np.array(_img)
+        #print "\timg size4", img.size
+        img = torch.from_numpy(img)
+        #print "\timg size5", img.shape
+        img = img.type('torch.FloatTensor')
+        #print "\timg size6", img.shape
+        img = img/255.
+        #print "\timg size7", img.shape
+        img = img.view(1, 60, 80)
+        #print "\timg.size8", img.shape
+        #print "\timg", img
+        self.state_img = img
+        #torchvision.utils.save_image(img, './data/__tmp.png')
 
         self.lock.release()
-
 #    def create_agent(self, agent_class, *args, **kwargs):
 #        agent = agent_class(self, *args, **kwargs)
 #        return agent
 
+    def _image_show(self):
+        plt.show()
 
     def get_rect_verts(self, center, length, width, angle):
         rotation_mtx = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
         half_length = length / 2.0
         half_width = width / 2.0
-        verts = np.array([[-half_length, half_width],   #top left
-                          [half_length, half_width],    #top right
-                          [half_length, -half_width],   #bottom right
-                          [-half_length, -half_width]]) #bottom left
+        if length == 4.800:
+            verts = np.array([[-1.100, half_width],
+                              [3.690, half_width],
+                              [3.690, -half_width],
+                              [-1.100, -half_width]])
+        
+        else:
+            verts = np.array([[-half_length, half_width],   #top left
+                              [half_length, half_width],    #top right
+                              [half_length, -half_width],   #bottom right
+                              [-half_length, -half_width]]) #bottom left
+        
         verts_rot = np.dot(rotation_mtx, verts.T)
         verts_trans = verts_rot.T + center.reshape((1,2))
         return verts_trans.reshape((4,2))
@@ -749,30 +825,24 @@ class car_sim_env(object):
 
     def close_rect(self, rect):
         return np.concatenate((rect, rect[0,:].reshape(1,2)), axis = 0)
-
-    def animate_car(self, i):
-        # self.agent_pose[2] = np.pi / 50 * (i % 50) * 2
-        # self.agent_pose[0] = random.uniform(-3,3)
-        # print '.........................................................................................'
-        self.update_agent_animation()
-        self.captureStates()
-#        print self.anim[0].new_frame_seq()
-        return [self.agent_patch, self.agent_head_patch, self.agent_center_patch]
-
+    
     def animate_env(self, i):
         pass
 
     def plt_show(self):
         self.create_parking_env() # Creates and shows parking environment
-        self.captureStates()
+        #self.captureStates() # for init
         plt.close(self.parking_fig)
+        
+        ## turn on interactive mode using
+        plt.ion()
 
         # print '...........................'
-        self.anim.append(animation.FuncAnimation(self.env_fig, self.animate_car,
-                                        init_func=None,
-                                        frames=1000,
-                                        interval=1,
-                                        blit=True))
+        #self.anim.append(animation.FuncAnimation(self.env_fig,self.animate_car,
+        #                                init_func=None,
+        #                                frames=1000,
+        #                                interval=1,
+        #                                blit=True))
         #TODO: Make parking space display appear along with car agent figure
         #self.anim.append(animation.FuncAnimation(self.parking_fig, self.animate_env))
         # print '...........................'
@@ -788,11 +858,9 @@ class car_sim_env(object):
         # # Set grid to use minor tick locations.
         # self.ax.grid(which='minor')
         # plt.grid('on')
-
-        plt.show()
-
+        
     def set_action(self, action):
-        #time.sleep(0.1)
+        #time.sleep(0.01)
         cur_pose = self.agent_pose
         self.agent_step(cur_pose, action)
 
