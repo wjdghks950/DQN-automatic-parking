@@ -92,12 +92,11 @@ class LearningAgent(Agent):
             print "using cpu..."
 
         self.memory = ReplayMemory(args.MEMORY_SIZE)
-
-        self.policy_net = DQN(vec_size=5, n_actions=2).to(self.device)
-        self.target_net = DQN(vec_size=5, n_actions=2).to(self.device)
         
-#        self.policy_net = DQN(vec_size=5, n_actions=9).to(self.device)
-#        self.target_net = DQN(vec_size=5, n_actions=9).to(self.device)
+        self.policy_net = DQN(vec_size=5, n_actions=9).to(self.device)
+        self.target_net = DQN(vec_size=5, n_actions=9).to(self.device)
+#        self.policy_net = DQN(vec_size=5, n_actions=9).cuda()
+#        self.target_net = DQN(vec_size=5, n_actions=9).cuda()
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
         
@@ -290,7 +289,7 @@ class LearningAgent(Agent):
         if random.random() > self.epsilon :
             with torch.no_grad():
                 q_values = self.policy_net(s_img, s_tuple)
-#                print "\tq_values", q_values
+                print "\tq_values", q_values
                 action_selected = car_sim_env.valid_actions[q_values.argmax(dim=1, keepdim=False)]
 #                print "\tget_action : act", (action_selected)
         else :
