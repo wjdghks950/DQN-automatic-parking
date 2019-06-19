@@ -100,7 +100,7 @@ class LearningAgent(Agent):
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
         
-        self.optimizer = optim.Adam(self.policy_net.parameters(), lr= 1e-2)
+        self.optimizer = optim.RMSprop(self.policy_net.parameters(), lr= 1e-2)
         print "device", self.device
         print "q net", self.policy_net
         print "target net", self.target_net
