@@ -287,12 +287,12 @@ class car_sim_env(object):
         #if self.agent is not None:
         if True :
             if self.t >= self.hard_time_limit:
-                #print "Environment.step(): Primary agent hit hard time limit! Trial aborted."
+                print "Environment.step(): Primary agent hit hard time limit! Trial aborted."
                 self.done = True
                 self.num_hit_time_limit += 1
 
             elif self.enforce_deadline and self.t >= self.deadline:
-                #print "Environment.step(): Primary agent ran out of time! Trial aborted."
+                print "Environment.step(): Primary agent ran out of time! Trial aborted."
                 self.done = True
                 self.num_out_of_time += 1
 # -----------------------------------
@@ -301,9 +301,7 @@ class car_sim_env(object):
             self.t += 1
     
     def get_screen(self) :
-        #self.lock.acquire()
         img = self.state_img.clone()
-        #self.lock.release()
         return img
 
 
