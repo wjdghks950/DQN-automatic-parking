@@ -11,6 +11,7 @@ import threading
 import argparse
 from PIL import Image
 from shutil import copyfile
+from datetime import datetime
 
 from model.model import DQN
 from tools import print_log
@@ -41,9 +42,8 @@ parser.add_argument('--TEST_INTERVAL', default=100, type=int, help='evaluation i
 
 args = parser.parse_args()
 
-filename = 'log_{seed}_ymd{y}{m}{d}_hm{h}{min}_model{model}'.format(seed=0, y=0 , m=0, d=0, h=0, min=0, model='rl_parking')
+filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 log = open(os.path.join(args.SAVE_PATH, 'txt'+filename+'.txt'), 'w')
-#log_csv = None
 args.log = log
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
