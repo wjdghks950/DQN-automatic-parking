@@ -127,7 +127,7 @@ class car_sim_env(object):
         self.hit_wall_times = 0
         self.time_over_times = 0
         self.hit_car_times = 0
-        self.hard_time_limit = 300  # even if enforce_deadline is False, end trial when deadline reaches this value (to avoid deadlocks)
+        self.hard_time_limit = 1000  # even if enforce_deadline is False, end trial when deadline reaches this value (to avoid deadlocks)
         self.reward_db = []
 
         self.lock = threading.Lock()
