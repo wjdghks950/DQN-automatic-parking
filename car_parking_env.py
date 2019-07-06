@@ -60,6 +60,9 @@ class car_sim_env(object):
         self.backward_radius = 0.42
         self.forward_turning_angle = 0.202
         self.backward_turning_angle = 0.262
+        self.car_x = -5.25
+        self.car_y = -4.25
+        self.car_angle = 0.0
         
         self.wall_edge_length = 10.5
         self.wall_center = np.array([0, -2.75])
@@ -129,6 +132,8 @@ class car_sim_env(object):
         self.hit_car_times = 0
         self.hard_time_limit = 1000  # even if enforce_deadline is False, end trial when deadline reaches this value (to avoid deadlocks)
         self.reward_db = []
+        self.destination = np.zeros(2)
+        self.distance = math.sqrt((self.car_x - self.destination[0])**2 + (self.car_y - self.destination[1])**2) # Calculate the distance between the car and the goal point
 
         self.lock = threading.Lock()
 
@@ -357,8 +362,9 @@ class car_sim_env(object):
         agent_pose = self.sense()
         cur_pose = agent_pose[:2]
         prev_pose = np.array([agent.state[1][0], agent.state[1][1]]) # x,y
-#        agent_pose[2] = 0 #??? why?
+
         reward -= 1.00 #* self.t
+        reward += self.distance2terminal(cur_pose) # Add distance reward to total reward
 
         if self.collide_walls():
             self.hit_wall_times += 1
@@ -401,6 +407,16 @@ class car_sim_env(object):
 
 
         return agent_pose, reward
+
+    def distance2terminal(self, pose):
+        # Using difference between distance(t-1) and distance(t) to calculate the reward
+        prev_distance = self.distance # d(t-1)
+        self.distance = math.sqrt((pose[0] - self.destination[0])**2 + (pose[1] - self.destination[1])**2)
+        reward = (prev_distance - self.distance) * 5.0 # (d(t-1) - d(t)) * 5.0 = Reward
+        print("[ Distance: ", self.distance, ' ] : [ Distance reward: ', reward, ' ] ')
+
+        return reward
+
 
     def reach2zone(self, pose):
 
@@ -707,10 +723,10 @@ class car_sim_env(object):
             x = random.uniform(self.agent_start_region[0], self.agent_start_region[1])
             y = random.uniform(self.agent_start_region[2], self.agent_start_region[3])
             '''
-            x = -5.25
-            y = -4.25
+            x = self.car_x
+            y = self.car_y
             #print('start_x:', x, 'start_y:', y)
-            theta = 0
+            theta = self.car_angle
             #theta = random.uniform(0, 2 * np.pi) #Generate random car_head angle
             if x < self.car1_verts[1,0] and x > self.car2_verts[0,0] \
                 and y < self.car1_verts[0,1] and y > self.car1_verts[-1,1]:
