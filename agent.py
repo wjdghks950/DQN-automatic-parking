@@ -43,7 +43,7 @@ parser.add_argument('--TEST_INTERVAL', default=100, type=int, help='evaluation i
 args = parser.parse_args()
 
 filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-log = open(os.path.join(args.SAVE_PATH, 'txt'+filename+'.txt'), 'w')
+log = open(os.path.join(args.SAVE_PATH, 'RLPark_Log_'+filename+'.txt'), 'w')
 args.log = log
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
